@@ -1,3 +1,33 @@
+# [5.0.0](https://github.com/runpod-workers/worker-comfyui/compare/4.0.1...5.0.0) (2025-05-02)
+
+
+### Features
+
+* multiple output images; replace http polling with websocket to check when a workflow is done ([#118](https://github.com/runpod-workers/worker-comfyui/issues/118)) ([b14068f](https://github.com/runpod-workers/worker-comfyui/commit/b14068f8e7da4790d2de5d4b710a08d26d0c131f))
+
+
+### BREAKING CHANGES
+
+* api output is not compatible anymore
+
+* docs: added all possible comfyui folders; simplified guide of method 1
+
+* fix(model): flux.1-schnell is gated
+
+* feat: update to 0.3.30
+
+* test: don't run "snapshot_restoration" tests
+
+* chore: force local images
+
+* docs: lowercase for code comments
+
+* ci: run release for changes in "main"
+
+* fix: workflow trigger
+
+* ci: build only base for now
+
 # [4.1.0](https://github.com/runpod-workers/worker-comfyui/compare/4.0.1...4.1.0) (2025-05-02)
 
 
