@@ -47,7 +47,6 @@ jobs:
         uses: codfish/semantic-release-action@v3
         id: semanticrelease
         with:
-          dry-run: true
           additional-packages: |
             ['@semantic-release/git', '@semantic-release/changelog', '@semantic-release/exec']
         env:
