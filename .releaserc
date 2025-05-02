@@ -1,7 +1,6 @@
 {
   "branches": [
-    "main",
-    "feat/refactor"
+    "main"
   ],
   "tagFormat": "${version}",
   "plugins": [
