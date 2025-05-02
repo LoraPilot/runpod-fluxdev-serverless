@@ -1,10 +1,10 @@
-name: Release
+name: release
 
 on:
   workflow_dispatch:
-#  push:
-#    branches:
-#      - "main"
+  push:
+    branches:
+      - "main"
 
 jobs:
   release:
@@ -20,14 +20,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           persist-credentials: false
-
-      - name: Set up Python
-        uses: useblacksmith/setup-python@v6
-        with:
-          python-version: "3.10"
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
 
       - name: Clear space to remove unused folders
         run: |
@@ -55,6 +47,7 @@ jobs:
         uses: codfish/semantic-release-action@v3
         id: semanticrelease
         with:
+          dry-run: true
           additional-packages: |
             ['@semantic-release/git', '@semantic-release/changelog', '@semantic-release/exec']
         env:

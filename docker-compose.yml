@@ -1,6 +1,7 @@
 services:
   comfyui-worker:
-    image: runpod/worker-comfyui:dev
+    image: worker-comfyui:dev
+    pull_policy: never
     deploy:
       resources:
         reservations:
