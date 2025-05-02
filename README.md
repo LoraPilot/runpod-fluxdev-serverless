@@ -102,6 +102,7 @@ Each object within the `input.images` array must contain:
 > [!WARNING]
 >
 > **Breaking Change in Output Format (5.0.0+)**
+>
 > Versions `< 5.0.0` returned the primary image data (S3 URL or base64 string) directly within an `output.message` field.
 > Starting with `5.0.0`, the output format has changed significantly, see below
 
@@ -151,8 +152,7 @@ Each object in the `output.images` array has the following structure:
 To interact with your deployed RunPod endpoint:
 
 1.  **Get API Key:** Generate a key in RunPod [User Settings](https://www.runpod.io/console/serverless/user/settings) (`API Keys` section).
-2.  **Get Endpoint ID:** Find your endpoint ID on the [Serverless Endpoints](https://www.runpod.io/console/serverless/user/endpoints) page.
-    ![How to find the EndpointID](./assets/my-endpoint-with-endpointID.png)
+2.  **Get Endpoint ID:** Find your endpoint ID on the [Serverless Endpoints](https://www.runpod.io/console/serverless/user/endpoints) page or on the `Overview` page of your endpoint.
 
 ### Generate Image (Sync Example)
 
