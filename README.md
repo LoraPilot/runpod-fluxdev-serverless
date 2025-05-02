@@ -93,11 +93,15 @@ Each object within the `input.images` array must contain:
 | `name`     | String | Yes      | Filename used to reference the image in the workflow (e.g., via a "Load Image" node). Must be unique within the array.            |
 | `image`    | String | Yes      | Base64 encoded string of the image. A data URI prefix (e.g., `data:image/png;base64,`) is optional and will be handled correctly. |
 
-> [!NOTE] > **Size Limits:** RunPod endpoints have request size limits (e.g., 10MB for `/run`, 20MB for `/runsync`). Large base64 input images can exceed these limits. See [RunPod Docs](https://docs.runpod.io/docs/serverless-endpoint-urls).
+> [!NOTE]
+>
+> **Size Limits:** RunPod endpoints have request size limits (e.g., 10MB for `/run`, 20MB for `/runsync`). Large base64 input images can exceed these limits. See [RunPod Docs](https://docs.runpod.io/docs/serverless-endpoint-urls).
 
 ### Output
 
-> [!WARNING] > **Breaking Change in Output Format (5.0.0+)**
+> [!WARNING]
+>
+> **Breaking Change in Output Format (5.0.0+)**
 > Versions `< 5.0.0` returned the primary image data (S3 URL or base64 string) directly within an `output.message` field.
 > Starting with `5.0.0`, the output format has changed significantly, see below
 
