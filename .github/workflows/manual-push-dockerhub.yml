@@ -10,7 +10,7 @@ on:
 
 jobs:
   manual_push:
-    runs-on: [blacksmith-8vcpu-ubuntu-2204, linux]
+    runs-on: [self-hosted, linux]
     permissions:
       contents: read
 
