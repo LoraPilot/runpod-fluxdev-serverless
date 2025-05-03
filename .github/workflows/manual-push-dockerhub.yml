@@ -7,6 +7,10 @@ on:
         description: "The release version tag to build and push (e.g., 1.2.3)"
         required: true
         type: string
+      target_to_build:
+        description: "The specific target to build (e.g., base, sdxl, sd3, flux1-schnell, flux1-dev)"
+        required: true
+        type: string
 
 jobs:
   manual_push:
@@ -48,6 +52,7 @@ jobs:
         uses: docker/bake-action@v2
         with:
           push: true
+          targets: ${{ github.event.inputs.target_to_build }}
           set: |
             *.args.DOCKERHUB_REPO=${{ env.DOCKERHUB_REPO }}
             *.args.DOCKERHUB_IMG=${{ env.DOCKERHUB_IMG }}
