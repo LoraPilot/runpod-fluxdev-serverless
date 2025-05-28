@@ -1,3 +1,20 @@
+# [5.1.0](https://github.com/runpod-workers/worker-comfyui/compare/5.0.4...5.1.0) (2025-05-28)
+
+
+### Bug Fixes
+
+* add missing libs needed for "opencv" to work ([33cd5d3](https://github.com/runpod-workers/worker-comfyui/commit/33cd5d349f76e4a393a3a4f3e99f954989b2c683))
+* use proper example that actually can be copied & pasted ([506fac1](https://github.com/runpod-workers/worker-comfyui/commit/506fac10480ec238110ae0dcb59b0b6865879471))
+
+
+### Features
+
+* added COMFY_LOG_LEVEL to control the logs from ComfyUI ([183de1c](https://github.com/runpod-workers/worker-comfyui/commit/183de1cdececa217abcbec30545e24c5820eba97))
+* added script "comfy-manager-set-mode" to set the "network mode" ([4d5425f](https://github.com/runpod-workers/worker-comfyui/commit/4d5425f211b85b95e4953f6c0ddf27ed92e3cfa1))
+* added script "comfy-node-install" as a wrapper to "comfy-cli" to proivde a proper exit code when something is not corret ([6605506](https://github.com/runpod-workers/worker-comfyui/commit/660550637bceb72052ef7c1dec9d6f36035a2fd2))
+* improved logging & provide actual reason why the workflow validation might fail ([7582999](https://github.com/runpod-workers/worker-comfyui/commit/7582999209d9683c198aa1c6d3793a16fe059416))
+* updated to ubuntu 24.04 & python 3.12 to support ffmpeg 6 ([eb8dd26](https://github.com/runpod-workers/worker-comfyui/commit/eb8dd265e0823b39974dc91bbb489b54ac92c8d3))
+
 # [5.0.0](https://github.com/runpod-workers/worker-comfyui/compare/4.0.1...5.0.0) (2025-05-02)
 
 
