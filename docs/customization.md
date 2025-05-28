@@ -39,11 +39,18 @@ This is the most flexible and recommended approach for creating reproducible, cu
     >
     > checkpoints, clip, clip_vision, configs, controlnet, diffusers, embeddings, gligen, hypernetworks, loras, style_models, unet, upscale_models, vae, vae_approx, animatediff_models, animatediff_motion_lora, ipadapter, photomaker, sams, insightface, facerestore_models, facedetection, mmdets, instantid
 
-5.  **Add Static Input Files (Optional):** If your workflows consistently require specific input images, masks, videos, etc., you can copy them directly into the image. - Create an `input/` directory in the same folder as your `Dockerfile`. - Place your static files inside this `input/` directory. - Add a `COPY` command to your `Dockerfile`:
-    `Dockerfile
-    # Copy local static input files into the ComfyUI input directory
-    COPY input/ /comfyui/input/
-    `These files can then be referenced in your workflow using a "Load Image" (or similar) node pointing to the filename (e.g.,`my_static_image.png`).
+5.  **Add Static Input Files (Optional):** If your workflows consistently require specific input images, masks, videos, etc., you can copy them directly into the image.
+
+- Create an `input/` directory in the same folder as your `Dockerfile`.
+- Place your static files inside this `input/` directory.
+- Add a `COPY` command to your `Dockerfile`:
+
+  ```Dockerfile
+  # Copy local static input files into the ComfyUI input directory
+  COPY input/ /comfyui/input/
+  ```
+
+- These files can then be referenced in your workflow using a "Load Image" (or similar) node pointing to the filename (e.g.,`my_static_image.png`).
 
 Once you have created your custom `Dockerfile`, refer to the [Deployment Guide](deployment.md#deploying-custom-setups) for instructions on how to build, push and deploy your custom image to RunPod.
 
@@ -51,7 +58,7 @@ Once you have created your custom `Dockerfile`, refer to the [Deployment Guide](
 
 ```Dockerfile
 # start from a clean base image (replace <version> with the desired release)
-FROM runpod/worker-comfyui:5.0.0-base
+FROM runpod/worker-comfyui:5.1.0-base
 
 # install custom nodes using comfy-cli
 RUN comfy-node-install comfyui-kjnodes comfyui-ic-light comfyui_ipadapter_plus comfyui_essentials ComfyUI-Hangover-Nodes
