@@ -1,3 +1,10 @@
+## [5.1.1](https://github.com/runpod-workers/worker-comfyui/compare/5.1.0...5.1.1) (2025-07-01)
+
+
+### Bug Fixes
+
+* update runpod to 1.7.12 ([#144](https://github.com/runpod-workers/worker-comfyui/issues/144)) ([c689eda](https://github.com/runpod-workers/worker-comfyui/commit/c689eda26b8d9505a0a63d6d4af6f8cab997e24f))
+
 # [5.1.0](https://github.com/runpod-workers/worker-comfyui/compare/5.0.4...5.1.0) (2025-05-28)
 
 
