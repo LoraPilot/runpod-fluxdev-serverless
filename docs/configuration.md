@@ -12,9 +12,10 @@ This document outlines the environment variables available for configuring the `
 
 ## Logging Configuration
 
-| Environment Variable | Description                                                                                                                                                      | Default |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| `COMFY_LOG_LEVEL`    | Controls ComfyUI's internal logging verbosity. Options: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Use `DEBUG` for troubleshooting, `INFO` for production. | `DEBUG` |
+| Environment Variable   | Description                                                                                                                                                      | Default |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `COMFY_LOG_LEVEL`      | Controls ComfyUI's internal logging verbosity. Options: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Use `DEBUG` for troubleshooting, `INFO` for production. | `DEBUG` |
+| `NETWORK_VOLUME_DEBUG` | Enable detailed network volume diagnostics in worker logs. Useful for debugging model path issues. See [Network Volumes & Model Paths](network-volumes.md).      | `false` |
 
 ## Debugging Configuration
 
@@ -23,8 +24,6 @@ This document outlines the environment variables available for configuring the `
 | `WEBSOCKET_RECONNECT_ATTEMPTS` | Number of websocket reconnection attempts when connection drops during job execution.                                  | `5`     |
 | `WEBSOCKET_RECONNECT_DELAY_S`  | Delay in seconds between websocket reconnection attempts.                                                              | `3`     |
 | `WEBSOCKET_TRACE`              | Enable low-level websocket frame tracing for protocol debugging. Set to `true` only when diagnosing connection issues. | `false` |
-
-> [!TIP] > **For troubleshooting:** Set `COMFY_LOG_LEVEL=DEBUG` to get detailed logs when ComfyUI crashes or behaves unexpectedly. This helps identify the exact point of failure in your workflows.
 
 ## AWS S3 Upload Configuration
 

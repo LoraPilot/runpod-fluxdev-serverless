@@ -2,7 +2,9 @@
 
 This guide covers methods for adding your own models, custom nodes, and static input files into a custom `worker-comfyui`.
 
-> [!TIP] > **Looking for the easiest way to deploy custom workflows?**
+> [!TIP]
+>
+> **Looking for the easiest way to deploy custom workflows?**
 >
 > [ComfyUI-to-API](https://comfy.getrunpod.io) automatically generates a custom Dockerfile and GitHub repository from your ComfyUI workflow, eliminating the manual setup described below. See the [ComfyUI-to-API Documentation](https://docs.runpod.io/community-solutions/comfyui-to-api/overview) for details.
 >
@@ -90,20 +92,21 @@ Using a Network Volume is primarily useful if you want to manage **models** sepa
 1.  **Create a Network Volume**:
     - Follow the [RunPod Network Volumes guide](https://docs.runpod.io/pods/storage/create-network-volumes) to create a volume in the same region as your endpoint.
 2.  **Populate the Volume with Models**:
-    - Use one of the methods described in the RunPod guide (e.g., temporary Pod + `wget`, direct upload) to place your model files into the correct ComfyUI directory structure **within the volume**. The root of the volume corresponds to `/workspace` inside the container.
+    - Use one of the methods described in the RunPod guide (e.g., temporary Pod + `wget`, direct upload, or the S3-compatible API) to place your model files into the correct ComfyUI directory structure **within the volume**.
+    - For **serverless endpoints**, the network volume is mounted at `/runpod-volume`, and ComfyUI expects models under `/runpod-volume/models/...`. See [Network Volumes & Model Paths](network-volumes.md) for the exact structure and debugging tips.
       ```bash
-      # Example structure inside the Network Volume:
-      # /models/checkpoints/your_model.safetensors
-      # /models/loras/your_lora.pt
-      # /models/vae/your_vae.safetensors
+      # Example structure inside the Network Volume (serverless worker view):
+      # /runpod-volume/models/checkpoints/your_model.safetensors
+      # /runpod-volume/models/loras/your_lora.pt
+      # /runpod-volume/models/vae/your_vae.safetensors
       ```
-    - **Important:** Ensure models are placed in the correct subdirectories (e.g., checkpoints in `models/checkpoints`, LoRAs in `models/loras`).
+    - **Important:** Ensure models are placed in the correct subdirectories (e.g., checkpoints in `models/checkpoints`, LoRAs in `models/loras`). If models are not detected, enable `NETWORK_VOLUME_DEBUG` as described in [Network Volumes & Model Paths](network-volumes.md).
 3.  **Configure Your Endpoint**:
     - Use the Network Volume in your endpoint configuration:
       - Either create a new endpoint or update an existing one (see [Deployment Guide](deployment.md)).
       - In the endpoint configuration, under `Advanced > Select Network Volume`, select your Network Volume.
 
-**Note:**
-
-- When a Network Volume is correctly attached, ComfyUI running inside the worker container will automatically detect and load models from the standard directories (`/workspace/models/...`) within that volume.
-- This method is **not suitable for installing custom nodes**; use the Custom Dockerfile method for that.
+> [!NOTE]
+>
+> - When a Network Volume is correctly attached, ComfyUI running inside the worker container will automatically detect and load models from the standard directories (`/runpod-volume/models/...`) within that volume (for serverless workers). For directory mapping details and troubleshooting, see [Network Volumes & Model Paths](network-volumes.md).
+> - This method is **not suitable for installing custom nodes**; use the Custom Dockerfile method for that.

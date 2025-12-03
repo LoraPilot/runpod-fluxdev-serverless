@@ -13,6 +13,18 @@ import uuid
 import tempfile
 import socket
 import traceback
+import logging
+
+from network_volume import (
+    is_network_volume_debug_enabled,
+    run_network_volume_diagnostics,
+)
+
+# ---------------------------------------------------------------------------
+# Logging setup
+# ---------------------------------------------------------------------------
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Time to wait between API check attempts in milliseconds
 COMFY_API_AVAILABLE_INTERVAL_MS = 50
@@ -502,6 +514,12 @@ def handler(job):
     Returns:
         dict: A dictionary containing either an error message or a success status with generated images.
     """
+    # ---------------------------------------------------------------------------
+    # Network Volume Diagnostics (opt-in via NETWORK_VOLUME_DEBUG=true)
+    # ---------------------------------------------------------------------------
+    if is_network_volume_debug_enabled():
+        run_network_volume_diagnostics()
+
     job_input = job["input"]
     job_id = job["id"]
 
