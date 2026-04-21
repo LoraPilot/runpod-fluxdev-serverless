@@ -323,11 +323,9 @@ bootstrap_workspace() {
     export TORCH_HOME="${cache_root}/torch"
     export TRITON_CACHE_DIR="${cache_root}/triton"
     export XDG_CACHE_HOME="${cache_root}/xdg"
-    export COMFY_MODEL_ROOT="${WORKSPACE_ROOT}/models"
 
     write_extra_model_paths "${WORKSPACE_ROOT}" "${extra_model_paths_file}"
 
     bootstrap_log "Using persistent workspace at ${WORKSPACE_ROOT}"
-    bootstrap_log "ComfyUI root: ${comfy_root}"
     bootstrap_log "Virtualenv: ${venv_root}"
 }

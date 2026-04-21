@@ -1,17 +1,16 @@
 # Introduction
 
-This project provides a way to run [ComfyUI](https://github.com/comfyanonymous/ComfyUI) as a serverless API worker on the [RunPod](https://www.runpod.io/) platform, with the current repo focused on LTX 2.3 video inference rather than generic image-model packaging.
+This project provides a way to run FLUX.1-dev text-to-image generation as a serverless API worker on the [RunPod](https://www.runpod.io/) platform.
 
 It packages FluxPipeline from diffusers into Docker images, manages job handling via the `runpod` SDK, uses Redis for caching, and facilitates configuration through environment variables.
 
 ## Why This Exists
 
-- Builds LTX-oriented Docker targets for RunPod serverless.
-- Uses Python 3.12 and a persistent `/workspace` bootstrap for ComfyUI, the venv, and caches.
-- Installs the official `ComfyUI-LTXVideo` nodes in the LTX image targets.
+- Builds Flux-oriented Docker targets for RunPod serverless.
+- Uses Python 3.12 and a persistent `/workspace` bootstrap for the venv and caches.
+- Uses FluxPipeline from diffusers for text-to-image generation.
 - Targets CUDA 12.8 by default and CUDA 13 experimentally for newer Blackwell-oriented deployments.
-- Can preload the main LTX 2.3 checkpoint at startup into persistent storage.
-- Can also preload the official latent upscalers and distilled LoRA for the two-stage distilled path.
+- Can preload the FLUX.1-dev model at startup into persistent storage.
 
 ## Why It Wins
 

@@ -66,7 +66,6 @@ target "base" {
   platforms = ["linux/amd64"]
   args = {
     BASE_IMAGE = "${BASE_IMAGE}"
-    COMFYUI_VERSION = "${COMFYUI_VERSION}"
     CUDA_VERSION_FOR_COMFY = "${CUDA_VERSION_FOR_COMFY}"
     ENABLE_PYTORCH_UPGRADE = "${ENABLE_PYTORCH_UPGRADE}"
     PYTORCH_INDEX_URL = "${PYTORCH_INDEX_URL}"
@@ -87,7 +86,6 @@ target "base-cuda12-8-1" {
   platforms = ["linux/amd64"]
   args = {
     BASE_IMAGE = "nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04"
-    COMFYUI_VERSION = "${COMFYUI_VERSION}"
     CUDA_VERSION_FOR_COMFY = ""
     ENABLE_PYTORCH_UPGRADE = "true"
     PYTORCH_INDEX_URL = "https://download.pytorch.org/whl/cu128"
@@ -108,7 +106,6 @@ target "base-cuda13-0" {
   platforms = ["linux/amd64"]
   args = {
     BASE_IMAGE = "nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04"
-    COMFYUI_VERSION = "${COMFYUI_VERSION}"
     CUDA_VERSION_FOR_COMFY = ""
     ENABLE_PYTORCH_UPGRADE = "true"
     PYTORCH_INDEX_URL = "https://download.pytorch.org/whl/cu130"
@@ -129,7 +126,6 @@ target "flux-dev" {
   platforms = ["linux/amd64"]
   args = {
     BASE_IMAGE = "nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04"
-    COMFYUI_VERSION = "${COMFYUI_VERSION}"
     CUDA_VERSION_FOR_COMFY = ""
     ENABLE_PYTORCH_UPGRADE = "true"
     PYTORCH_INDEX_URL = "https://download.pytorch.org/whl/cu128"
@@ -150,7 +146,6 @@ target "flux-dev-cuda13" {
   platforms = ["linux/amd64"]
   args = {
     BASE_IMAGE = "nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04"
-    COMFYUI_VERSION = "${COMFYUI_VERSION}"
     CUDA_VERSION_FOR_COMFY = ""
     ENABLE_PYTORCH_UPGRADE = "true"
     PYTORCH_INDEX_URL = "https://download.pytorch.org/whl/cu130"

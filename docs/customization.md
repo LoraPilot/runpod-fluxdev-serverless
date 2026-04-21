@@ -33,11 +33,7 @@ This is the most flexible and recommended approach for creating reproducible, cu
 3.  **Install Custom Nodes:** Use the `comfy-node-install` (we had introduce our own cli tool here, as there is a [problem with comfy-cli not showing errors during installation](https://github.com/Comfy-Org/comfy-cli/pull/275)) command to add custom nodes by their name or URL, see [Comfy Registry](https://registry.comfy.org) to find the correct name. You can list multiple nodes.
     ```Dockerfile
     ```
-4.  **Download Models:** Use the `comfy model download` command to fetch models and place them in the correct ComfyUI directories.
-
-> [!NOTE]
->
-> Ensure you use the correct `--relative-path` corresponding to ComfyUI's model directory structure (starting with `models/<folder>`):
+4.  **Download Models:** Use `wget` or `curl` to download models and place them in the correct directories.
 >
 > checkpoints, clip, clip_vision, configs, controlnet, diffusers, embeddings, gligen, hypernetworks, loras, style_models, unet, upscale_models, vae, vae_approx, animatediff_models, animatediff_motion_lora, ipadapter, photomaker, sams, insightface, facerestore_models, facedetection, mmdets, instantid
 
@@ -65,9 +61,7 @@ FROM your-dockerhub-id/flux-dev-worker:latest-base-cuda12.8.1
 # install custom nodes using comfy-cli
 RUN comfy-node-install comfyui-kjnodes comfyui-ic-light comfyui_ipadapter_plus comfyui_essentials ComfyUI-Hangover-Nodes
 
-# download models using comfy-cli
-# the "--filename" is what you use in your ComfyUI workflow
-RUN comfy model download --url https://huggingface.co/KamCastle/jugg/resolve/main/juggernaut_reborn.safetensors --relative-path models/checkpoints --filename juggernaut_reborn.safetensors
+# download models --url https://huggingface.co/KamCastle/jugg/resolve/main/juggernaut_reborn.safetensors --relative-path models/checkpoints --filename juggernaut_reborn.safetensors
 RUN comfy model download --url https://huggingface.co/h94/IP-Adapter/resolve/main/models/ip-adapter-plus_sd15.bin --relative-path models/ipadapter --filename ip-adapter-plus_sd15.bin
 RUN comfy model download --url https://huggingface.co/shiertier/clip_vision/resolve/main/SD15/model.safetensors --relative-path models/clip_vision --filename models.safetensors
 RUN comfy model download --url https://huggingface.co/lllyasviel/ic-light/resolve/main/iclight_sd15_fcon.safetensors --relative-path models/diffusion_models --filename iclight_sd15_fcon.safetensors
@@ -84,8 +78,8 @@ Using a Network Volume is primarily useful if you want to manage **models** sepa
 1.  **Create a Network Volume**:
     - Follow the [RunPod Network Volumes guide](https://docs.runpod.io/pods/storage/create-network-volumes) to create a volume in the same region as your endpoint.
 2.  **Populate the Volume with Models**:
-    - Use one of the methods described in the RunPod guide (e.g., temporary Pod + `wget`, direct upload, or the S3-compatible API) to place your model files into the correct ComfyUI directory structure **within the volume**.
-    - For **serverless endpoints**, the network volume is mounted at `/runpod-volume`, and ComfyUI expects models under `/runpod-volume/models/...`. See [Network Volumes & Model Paths](network-volumes.md) for the exact structure and debugging tips.
+    - Use one of the methods described in the RunPod guide (e.g., temporary Pod + `wget`, direct upload, or the S3-compatible API) to place your model files into the correct directory structure **within the volume**.
+    - For **serverless endpoints**, the network volume is mounted at `/runpod-volume`, and models should be placed under `/runpod-volume/models/...`. See [Network Volumes & Model Paths](network-volumes.md) for the exact structure and debugging tips.
       ```bash
       # Example structure inside the Network Volume (serverless worker view):
       # /runpod-volume/models/checkpoints/your_model.safetensors
@@ -100,5 +94,5 @@ Using a Network Volume is primarily useful if you want to manage **models** sepa
 
 > [!NOTE]
 >
-> - When a Network Volume is correctly attached, ComfyUI running inside the worker container will automatically detect and load models from the standard directories (`/runpod-volume/models/...`)# Customizing the FLUX.1-dev Serverless Workers). For directory mapping details and troubleshooting, see [Network Volumes & Model Paths](network-volumes.md).
+> - When a Network Volume is correctly attached, the worker will automatically detect and load models from the standard directories (`/runpod-volume/models/...`). For directory mapping details and troubleshooting, see [Network Volumes & Model Paths](network-volumes.md).
 > - This method is **not suitable for installing custom nodes**; use the Custom Dockerfile method for that.
