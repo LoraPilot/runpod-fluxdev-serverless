@@ -393,7 +393,6 @@ bootstrap_workspace() {
     sync_named_files_from_image \
         "${workflow_template_source_root}" \
         "${workflow_target_dir}" \
-        "${COMFY_BOOTSTRAP_WORKFLOWS:-video_ltx2_3_i2v_API.json}"
 
     trap - RETURN
     release_bootstrap_lock "${bootstrap_lock_dir}"

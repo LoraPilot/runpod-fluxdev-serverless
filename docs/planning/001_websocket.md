@@ -248,7 +248,7 @@ Run local Docker validation after implementation:
 
 ```bash
 docker-compose down
-docker build --target base --platform linux/amd64 -t ltx23-worker:dev .
+docker build --target base --platform linux/amd64 -t flux-dev-worker:dev .
 docker-compose up -d
 ```
 

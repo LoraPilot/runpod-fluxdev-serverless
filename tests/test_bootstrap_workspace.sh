@@ -34,9 +34,9 @@ run_persistent_bootstrap() {
     (
         export PERSIST_WORKSPACE=true
         export WORKSPACE_ROOT="${WORKSPACE_ROOT}"
-        export WORKSPACE_STATE_ROOT="${WORKSPACE_ROOT}/worker-comfyui"
-        export COMFY_IMAGE_ROOT="${IMAGE_COMFY}"
-        export COMFY_RUNTIME_ROOT="${RUNTIME_COMFY}"
+        export WORKSPACE_STATE_ROOT="${WORKSPACE_ROOT}/worker-venv"
+        export MODELS_IMAGE_ROOT="${IMAGE_MODELS}"
+        export MODELS_RUNTIME_ROOT="${RUNTIME_MODELS}"
         export VENV_IMAGE_ROOT="${IMAGE_VENV}"
         export VENV_RUNTIME_ROOT="${RUNTIME_VENV}"
         export EXTRA_MODEL_PATHS_FILE="${EXTRA_MODEL_PATHS_FILE}"

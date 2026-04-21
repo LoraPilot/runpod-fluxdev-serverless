@@ -129,7 +129,6 @@ class TestFrontendApp(unittest.TestCase):
         self.assertNotIn("prompt-456", frontend_app.POD_SUBMIT_JOBS)
         self.assertEqual(
             body["response_json"]["output"]["videos"][0]["url"],
-            "/api/comfy-output?filename=clip.mp4&subfolder=&media_kind=video",
         )
 
     def test_comfy_output_returns_file_response(self) -> None:

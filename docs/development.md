@@ -1,6 +1,6 @@
 # Development and Local Testing
 
-This guide covers setting up your local environment for developing and testing this LTX-focused ComfyUI worker.
+This guide covers setting up your local environment for developing and testing this FLUX.1-dev serverless worker.
 
 ## Setup
 
@@ -14,8 +14,8 @@ This guide covers setting up your local environment for developing and testing t
 
 1.  **Clone the repository** (if you haven't already):
     ```bash
-    git clone https://github.com/vavo/LTX2.3-serverless.git
-    cd LTX2.3-serverless
+    git clone https://github.com/vavo/flux-dev-serverless.git
+    cd flux-dev-serverless
     ```
 2.  **Create a virtual environment**:
     ```bash
@@ -91,13 +91,12 @@ Unit tests are provided to verify the core logic of the `handler.py`.
 
 ## Testing the Bootstrap Scripts
 
-The persistence and LTX preload paths are covered by shell tests and do not depend on the legacy [`test_input.json`](../test_input.json) payload.
+The persistence and Flux preload paths are covered by the bootstrap script.
 
 - **Run all shell tests**:
   ```bash
   bash tests/test_restore_snapshot.sh
   bash tests/test_bootstrap_workspace.sh
-  bash tests/test_bootstrap_ltx23.sh
   ```
 
 ## Local API Simulation (using Docker Compose)
@@ -131,7 +130,7 @@ For enhanced local development and end-to-end testing, you can start a local env
 ### Access the Local Frontend
 
 - The bundled payload-builder frontend auto-starts in the same container and is accessible at: [http://localhost:7777](http://localhost:7777)
-- You can disable it by setting `LTX_FRONTEND_ENABLED=false` if you only want the worker and ComfyUI.
+- You can disable it by setting environment variable if you only want the worker.
 
 ## Pod-Oriented Local Boot
 

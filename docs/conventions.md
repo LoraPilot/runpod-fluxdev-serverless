@@ -37,11 +37,12 @@ This document outlines the key operational and structural conventions for the pr
 - **Platform:** When building Docker images intended for RunPod, **always** use the `--platform linux/amd64` flag to ensure compatibility.
   ```bash
   # Example build command
-  docker build --platform linux/amd64 -t my-image:tag .
+  docker build --platform linux/amd64 -t flux-dev-worker:tag .
   ```
 - **Development Builds:** For faster development iterations, build the clean base target and keep model/state downloads on the persistent workspace:
   ```bash
-  docker build --target base --platform linux/amd64 -t ltx23-worker:dev .
+  docker build --target base --platform linux/amd64 -t flux-dev-worker:dev .
+  docker build --target base -t flux-dev-worker:dev .
   ```
 - **Customization:** Follow the methods in the `README.md` for adding custom models/nodes (Network Volume or Dockerfile edits + snapshots).
 

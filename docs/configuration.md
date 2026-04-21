@@ -19,14 +19,8 @@ This document outlines the environment variables available for configuring the w
 | `COMFYUI_MANAGER_CONFIG` | Override the ComfyUI-Manager `config.ini` path used by `comfy-manager-set-mode`. ComfyUI-Manager is installed in the image by default.                                      | `/comfyui/user/default/ComfyUI-Manager/config.ini` |
 | `INDRO_API_KEY` | Secret checked only by the legacy custom `input.prompt` + `input.image_url` handler path. Workflow-mode jobs do not use it. | `dev_token_123` |
 | `REDIS_URL` | Redis connection used for rate limiting, dedupe, job status, and circuit breaker state. | `redis://localhost:6379` |
-| `COMFY_NODES` | Comma-separated ComfyUI API hosts that can accept `/prompt` and `/history` requests. | `127.0.0.1:8188` |
-| `LOCAL_COMFY_NODE` | Local ComfyUI host used by the bundled frontend for pod-mode submits. | `127.0.0.1:8188` |
-| `COMFY_INPUT_DIR` | Directory where workflow-mode uploaded input files are staged before queueing the workflow. | `/comfyui/input` |
-| `COMFY_OUTPUT_DIR` | Directory where generated images and videos are read back from after completion. | `/comfyui/output` |
-| `MAX_INLINE_VIDEO_MB` | Maximum inline base64 video size. Larger video responses require S3 or they fail. | `50` |
 | `CACHE_TTL_SECONDS` | How long successful deduped responses stay cached in Redis. | `604800` |
 | `AWS_BUCKET_NAME` | Enable S3 upload mode for generated image and video outputs. | – |
-| `LTX_FRONTEND_ENABLED` | When `true`, starts the bundled FastAPI frontend inside the container on port `7777`. | `true` |
 
 ## Bootstrap Locking
 
@@ -41,10 +35,9 @@ For the least annoying first worker boot on RunPod serverless, set:
 ```env
 PERSIST_WORKSPACE=true
 RUN_MODE=worker
-COMFY_NODES=127.0.0.1:8188
-LTX23_PRELOAD_VARIANT=distilled
-LTX23_PRELOAD_UPSCALERS=true
+FLUX_DEV_PRELOAD=true
 HUGGINGFACE_ACCESS_TOKEN=hf_xxx
+REDIS_URL=redis://localhost:6379
 ```
 
 For a plain pod:
@@ -52,13 +45,11 @@ For a plain pod:
 ```env
 PERSIST_WORKSPACE=true
 RUN_MODE=pod
-LOCAL_COMFY_NODE=127.0.0.1:8188
-LTX23_PRELOAD_VARIANT=distilled
-LTX23_PRELOAD_UPSCALERS=true
+FLUX_DEV_PRELOAD=true
 HUGGINGFACE_ACCESS_TOKEN=hf_xxx
 ```
 
-That startup preload covers the main LTX checkpoint, the official latent upscalers, and the distilled LoRA. Some secondary weights used by `ComfyUI-LTXVideo`, such as Gemma or text encoders, can still download on first render into the persistent Hugging Face cache.
+That startup preload covers the FLUX.1-dev model. Some secondary weights can still download on first render into the persistent model storage.
 
 ## Runtime Paths
 
@@ -105,7 +96,7 @@ Configure these variables **only** if you want the worker to upload generated im
 
 | Environment Variable | Description | Example |
 | -------------------- | ----------- | ------- |
-| `AWS_BUCKET_NAME` | Bucket name used by the worker when uploading artifacts. **Must be set to enable S3 mode.** | `my-ltx-renders` |
+| `AWS_BUCKET_NAME` | Bucket name used by the worker when uploading artifacts. **Must be set to enable S3 mode.** | `my-flux-renders` |
 | `AWS_ACCESS_KEY_ID` | AWS access key ID for the IAM principal that can write to the bucket. | `AKIAIOSFODNN7EXAMPLE` |
 | `AWS_SECRET_ACCESS_KEY` | AWS secret access key for that IAM principal. | `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY` |
 | `AWS_DEFAULT_REGION` | AWS region used by the S3 client. | `eu-central-1` |
@@ -119,18 +110,16 @@ If the S3 environment variables are correctly configured, a successful workflow 
 {
   "status": "success",
   "output": {
-    "videos": [
+    "images": [
       {
-        "filename": "LTX_2.3_i2v.mp4",
-        "type": "url",
-        "data": "https://example-bucket.s3.amazonaws.com/renders/job-123/00-LTX_2.3_i2v.mp4?...",
-        "media_type": "video/mp4"
+        "filename": "flux_image.png",
+        "data": "https://example-bucket.s3.amazonaws.com/renders/job-123/00-flux_image.png?...",
+        "media_type": "image/png"
       }
     ]
   },
   "metadata": {
-    "render_time_sec": 42.1,
-    "node_used": "127.0.0.1:8188"
+    "generation_time_sec": 12.5
   },
   "cached": false
 }

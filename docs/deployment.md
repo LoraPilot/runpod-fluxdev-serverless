@@ -1,6 +1,6 @@
 # Deployment
 
-This guide explains how to deploy this ComfyUI-based LTX 2.3 worker as a RunPod serverless endpoint, covering both pre-built image targets and custom-built images.
+This guide explains how to deploy this FLUX.1-dev text-to-image worker as a RunPod serverless endpoint, covering both pre-built image targets and custom-built images.
 
 ## Deploying Pre-Built Official Images
 
@@ -10,12 +10,12 @@ This is the simplest method if the official images meet your needs.
 
 - Create a [new template](https://runpod.io/console/serverless/user/templates) by clicking on `New Template`
 - In the dialog, configure:
-  - Template Name: `ltx2.3-worker` (or your preferred name)
+  - Template Name: `flux-dev-worker` (or your preferred name)
   - Template Type: serverless (change template type to "serverless")
-  - Container Image: Use one of the LTX-oriented tags from the main [README.md](../README.md#available-docker-images), for example `<repo>:<version>-ltx2.3-distilled-cu128`. If you are building your own clean base, plain `base` now defaults to CUDA 12.8.1 / cu128.
+  - Container Image: Use one of the Flux-oriented tags from the main [README.md](../README.md#available-docker-images), for example `<repo>:<version>-flux-dev-cu128`. If you are building your own clean base, plain `base` now defaults to CUDA 12.8.1 / cu128.
   - Container Registry Credentials: Leave as default (images are public).
   - Container Disk: Adjust based on the chosen image tag, see [GPU Recommendations](#gpu-recommendations).
-  - (optional) Environment Variables: Configure `LTX23_PRELOAD_VARIANT`, `HUGGINGFACE_ACCESS_TOKEN`, S3, or other settings (see [Configuration Guide](configuration.md)).
+  - (optional) Environment Variables: Configure `FLUX_DEV_PRELOAD`, `HUGGINGFACE_ACCESS_TOKEN`, `REDIS_URL`, or other settings (see [Configuration Guide](configuration.md)).
     - Note: If you don't configure S3, images are returned as base64. For persistent storage across jobs without S3, consider using a [Network Volume](customization.md#method-2-network-volume-alternative-for-models). If models on your network volume are not being detected, see [Network Volumes & Model Paths](network-volumes.md) for troubleshooting steps.
 - Click on `Save Template`
 
@@ -24,14 +24,14 @@ This is the simplest method if the official images meet your needs.
 - Navigate to [`Serverless > Endpoints`](https://www.runpod.io/console/serverless/user/endpoints) and click on `New Endpoint`
 - In the dialog, configure:
 
-  - Endpoint Name: `ltx2-3` (or your preferred name)
+  - Endpoint Name: `flux-dev` (or your preferred name)
   - Worker configuration: Select a GPU that can run the model included in your chosen image (see [GPU recommendations](#gpu-recommendations)).
   - Active Workers: `0` (Scale as needed based on expected load).
   - Max Workers: `3` (Set a limit based on your budget and scaling needs).
   - GPUs/Worker: `1`
   - Idle Timeout: `5` (Default is usually fine, adjust if needed).
   - Flash Boot: `enabled` (Recommended for faster worker startup).
-  - Select Template: `ltx2.3-worker` (or the name you gave your template).
+  - Select Template: `flux-dev-worker` (or the name you gave your template).
   - (optional) Advanced: Attach a Network Volume under `Select Network Volume`. For this repo that is not really optional unless you like paying cold-start tax on every worker boot. See the [Customization Guide](customization.md#method-2-network-volume-alternative-for-models) and [Network Volumes & Model Paths](network-volumes.md).
   - For serverless endpoints, leave `RUN_MODE` unset or set it explicitly to `worker`.
 
@@ -42,20 +42,19 @@ Use this for a sane first worker boot:
 ```env
 PERSIST_WORKSPACE=true
 RUN_MODE=worker
-COMFY_NODES=127.0.0.1:8188
-LTX23_PRELOAD_VARIANT=distilled
-LTX23_PRELOAD_UPSCALERS=true
+FLUX_DEV_PRELOAD=true
 HUGGINGFACE_ACCESS_TOKEN=hf_xxx
+REDIS_URL=redis://localhost:6379
 ```
 
-That preloads the main LTX model stack into persistent storage. Secondary assets used by `ComfyUI-LTXVideo`, especially Gemma and text-encoder weights, may still fetch on the first render and then stay cached under `/workspace/worker-comfyui/cache/huggingface`.
+That preloads the FLUX.1-dev model into persistent storage. Secondary assets may still download on the first render and then stay cached under `/workspace/models/`.
 
 ## Hardware Baseline
 
 - CUDA 12.8 is the default target in this repo.
 - Plain `docker build ...` and bake target `base` now default to CUDA 12.8.1 with the cu128 PyTorch wheel index.
 - CUDA 13 is supported here as an experimental path.
-- The LTX / ComfyUI docs recommend 32GB+ VRAM and 100GB+ free disk for a comfortable setup.
+- FLUX.1-dev recommends 12GB+ VRAM and 16GB+ free disk for a comfortable setup.
 - For the CUDA 12.8 path, PyTorch 2.8+ is the intended floor.
 - For the CUDA 13 path, official `cu130` wheels start at PyTorch 2.9+, so treat that lane accordingly.
 
@@ -63,19 +62,12 @@ That preloads the main LTX model stack into persistent storage. Secondary assets
 
 ### Works Today
 
-- FLUX.1-dev Serverless Worker Deployment Guide ComfyUI.
+- FLUX.1-dev Serverless Worker with FluxPipeline from diffusers.
 - Persistent state on `/workspace` via network volume.
-- LTX-focused image targets as listed in the main [README.md](../README.md#available-docker-images).
+- Flux-focused image targets as listed in the main [README.md](../README.md#available-docker-images).
 - Standard RunPod endpoints: `/run`, `/runsync`, `/health`.
-- Input workflow JSON plus optional input images.
-- Output handling for image and video artifacts from ComfyUI.
-- Checked-in LTX image-to-video API workflow at [`video_ltx2_3_i2v_API.json`](../video_ltx2_3_i2v_API.json).
-
-### Compatibility Baggage
-
-- The worker still accepts the older custom request shape based on `input.prompt`, `input.image_url`, and `input.api_key`.
-- New integrations should use the workflow contract documented in the main [README.md](../README.md#api-specification) instead of building against the legacy compatibility path.
-- The worker currently returns image and video files only. Audio-only artifacts are still not exposed as a first-class output collection.
+- Input text prompt with optional generation parameters.
+- Output handling for base64-encoded PNG images.
 
 - Click `deploy`
 - Your endpoint will be created. You can click on it to view the dashboard and find its ID.
@@ -85,9 +77,8 @@ That preloads the main LTX model stack into persistent storage. Secondary assets
 | Target                           | Image Tag Suffix              | Minimum VRAM Required | Recommended Container Size |
 | -------------------------------- | ----------------------------- | --------------------- | -------------------------- |
 | Clean base, default CUDA 12.8    | `base`                        | N/A                   | 20 GB                      |
-| LTX 2.3 distilled                | `ltx2.3-distilled-cu128`      | 32 GB                 | 100 GB                     |
-| LTX 2.3 distilled fp8            | `ltx2.3-distilled-fp8-cu128`  | 24-32 GB              | 100 GB                     |
-| LTX 2.3 distilled, experimental  | `ltx2.3-distilled-cu130`      | 32 GB                 | 100 GB                     |
+| FLUX.1-dev                      | `flux-dev-cu128`              | 12 GB                 | 16 GB                      |
+| FLUX.1-dev, experimental        | `flux-dev-cu130`              | 12 GB                 | 16 GB                      |
 | CUDA 12.8 clean base, explicit alias | `base-cuda12.8.1`         | N/A                   | 20 GB                      |
 | CUDA 13 clean base               | `base-cuda13.0`               | N/A                   | 20 GB                      |
 
@@ -158,15 +149,13 @@ If you use this image for a plain pod instead of a serverless worker, set:
 RUN_MODE=pod
 ```
 
-That starts ComfyUI and the bundled frontend, but skips `runpod.serverless.start(...)`.
+That starts the bundled frontend, but skips `runpod.serverless.start(...)`.
 
 For a sane first pod boot, use:
 
 ```env
 PERSIST_WORKSPACE=true
 RUN_MODE=pod
-LOCAL_COMFY_NODE=127.0.0.1:8188
-LTX23_PRELOAD_VARIANT=distilled
-LTX23_PRELOAD_UPSCALERS=true
+FLUX_DEV_PRELOAD=true
 HUGGINGFACE_ACCESS_TOKEN=hf_xxx
 ```
