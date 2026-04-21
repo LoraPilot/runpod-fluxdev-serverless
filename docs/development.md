@@ -65,7 +65,7 @@ After completing these steps, you should be able to run Docker commands, includi
 > [!NOTE]
 >
 > - It is generally recommended to run the Docker commands (`docker build`, `docker-compose up`) from within the WSL environment terminal for consistency with the Linux-based container environment.
-> - Accessing `localhost` URLs (like the local API or ComfyUI) from your Windows browser while the service runs inside WSL usually works, but network configurations can sometimes cause issues.
+> - Accessing `localhost` URLs (like the local API) from your Windows browser while the service runs inside WSL usually works, but network configurations can sometimes cause issues.
 
 ## Testing the RunPod Handler
 
@@ -82,11 +82,11 @@ Unit tests are provided to verify the core logic of the `handler.py`.
 - **Run a specific test case or method**:
 
   ```bash
-  # Example: Run all tests in the TestRunpodWorkerComfy class
-  python -m unittest tests.test_handler.TestRunpodWorkerComfy
+  # Example: Run all tests in the TestRunpodWorkerFlux class
+  python -m unittest tests.test_handler.TestRunpodWorkerFlux
 
   # Example: Run a single test method
-  python -m unittest tests.test_handler.TestRunpodWorkerComfy.test_s3_upload
+  python -m unittest tests.test_handler.TestRunpodWorkerFlux.test_s3_upload
   ```
 
 ## Testing the Bootstrap Scripts
@@ -101,7 +101,7 @@ The persistence and Flux preload paths are covered by the bootstrap script.
 
 ## Local API Simulation (using Docker Compose)
 
-For enhanced local development and end-to-end testing, you can start a local environment using Docker Compose that includes the worker and a ComfyUI instance.
+For enhanced local development and end-to-end testing, you can start a local environment using Docker Compose that includes the worker.
 
 > [!IMPORTANT]
 >
@@ -119,7 +119,7 @@ For enhanced local development and end-to-end testing, you can start a local env
     docker-compose up --build
     ```
     - The `--build` flag ensures the image is built locally using the current state of the code and `Dockerfile`.
-    - This will start the worker container, which in turn starts ComfyUI, the local RunPod API shim, and the bundled frontend.
+    - This will start the worker container, which in turn starts the local RunPod API shim and the bundled frontend.
 
 ### Access the Local Worker API
 
@@ -142,15 +142,10 @@ RUN_MODE=pod
 
 That starts:
 
-- ComfyUI on `8188`
 - the frontend on `7777`
 
 and skips the serverless handler entirely.
 
-### Access Local ComfyUI
-
-- The underlying ComfyUI instance running in the `comfyui` container is accessible directly at: [http://localhost:8188](http://localhost:8188)
-- This is useful for debugging workflows or observing the ComfyUI state while testing the worker.
 
 ### Stopping the Local Environment
 

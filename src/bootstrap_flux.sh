@@ -123,7 +123,7 @@ PY
 
 bootstrap_flux() {
     local preload="${FLUX_DEV_PRELOAD:-false}"
-    local model_root="${COMFY_MODEL_ROOT:-/workspace/models}"
+    local model_root="${FLUX_MODEL_ROOT:-/workspace/models}"
     local diffusion_dir="${model_root}/diffusion_models"
     local text_encoder_dir="${model_root}/text_encoders"
     local vae_dir="${model_root}/vae"
