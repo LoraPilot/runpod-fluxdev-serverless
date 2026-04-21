@@ -1,7 +1,6 @@
-# fix some problems with the queue
+# RunPod serverless
 runpod~=1.9.0
 cryptography==46.0.7
-websocket-client
 requests
 aiohttp
 redis
@@ -9,3 +8,9 @@ boto3
 fastapi
 uvicorn[standard]
 huggingface_hub[hf_transfer]>=0.30.0
+
+# Flux.1-dev dependencies
+diffusers>=0.30.0
+transformers>=4.46.0
+accelerate
+sentencepiece

@@ -63,7 +63,7 @@ That preloads the main LTX model stack into persistent storage. Secondary assets
 
 ### Works Today
 
-- RunPod serverless worker around ComfyUI.
+- FLUX.1-dev Serverless Worker Deployment Guide ComfyUI.
 - Persistent state on `/workspace` via network volume.
 - LTX-focused image targets as listed in the main [README.md](../README.md#available-docker-images).
 - Standard RunPod endpoints: `/run`, `/runsync`, `/health`.

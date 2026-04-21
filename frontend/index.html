@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LTX 2.3 Payload Builder</title>
+    <title>FLUX.1-dev Image Generator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -16,22 +16,11 @@
     <div class="page-shell">
       <main class="app-shell">
         <section class="hero">
-          <p class="eyebrow">LTX 2.3 payload builder</p>
-          <h1>What will you imagine?</h1>
+          <p class="eyebrow">FLUX.1-dev Image Generator</p>
+          <h1>What will you create?</h1>
           <p class="hero-copy">
-            Generate the JSON body for the LTX image-to-video API without doing
-            frame math by hand like a prisoner.
+            Generate stunning images from text prompts using Black Forest Labs' FLUX.1-dev model.
           </p>
-        </section>
-
-        <section class="mode-toggle" aria-label="Generation mode">
-          <button class="mode-pill" type="button" disabled>
-            Text to Video
-            <span class="soon-chip">Soon</span>
-          </button>
-          <button class="mode-pill mode-pill-active" type="button">
-            Image to Video
-          </button>
         </section>
 
         <form id="payload-form" class="controls" novalidate>
@@ -45,54 +34,33 @@
               required
             ></textarea>
             <div class="panel-footer">
-              <label class="checkbox">
-                <input id="optimize-prompt" name="optimize-prompt" type="checkbox" checked />
-                <span>Optimize with AI</span>
-              </label>
               <span class="counter"><span id="char-count">0</span> / 1000 characters</span>
             </div>
           </section>
 
           <div class="secondary-grid">
-            <section
-              id="upload-panel"
-              class="panel upload-panel"
-              tabindex="0"
-              role="button"
-              aria-controls="source-image"
-            >
-              <input id="source-image" type="file" accept="image/*" hidden />
-              <div id="upload-icon" class="upload-icon" aria-hidden="true">↥</div>
-              <p id="upload-title" class="upload-title">Add Source Image</p>
-              <p id="upload-copy" class="upload-copy">Drag and drop or click to upload</p>
-              <div id="image-preview-card" class="image-preview-card" hidden>
-                <img id="image-preview" class="image-preview" alt="Uploaded source preview" />
-                <p id="preview-name" class="preview-name"></p>
-              </div>
-              <div id="file-pill" class="file-pill" hidden>
-                <span id="file-name"></span>
-              </div>
-            </section>
-
             <section class="panel settings-panel">
               <div class="setting-block">
                 <div class="setting-row">
-                  <span class="setting-label">Duration</span>
-                  <span class="setting-value"><span id="seconds-value">5.0</span>s</span>
+                  <span class="setting-label">Aspect Ratio</span>
+                  <span class="setting-meta" id="resolution-value">1024 × 1024</span>
                 </div>
-                <input
-                  id="seconds"
-                  name="seconds"
-                  type="range"
-                  min="1"
-                  max="20"
-                  step="0.5"
-                  value="5"
-                />
-                <div class="range-markers">
-                  <span id="seconds-min-label">1s</span>
-                  <span id="seconds-default-label">5s</span>
-                  <span id="seconds-max-label">20s</span>
+                <div class="aspect-grid" role="radiogroup" aria-label="Aspect ratio">
+                  <button class="aspect-button" data-aspect-ratio="16:9" type="button">
+                    16:9
+                  </button>
+                  <button class="aspect-button" data-aspect-ratio="9:16" type="button">
+                    9:16
+                  </button>
+                  <button class="aspect-button aspect-button-active" data-aspect-ratio="1:1" type="button">
+                    1:1
+                  </button>
+                  <button class="aspect-button" data-aspect-ratio="4:3" type="button">
+                    4:3
+                  </button>
+                  <button class="aspect-button" data-aspect-ratio="3:4" type="button">
+                    3:4
+                  </button>
                 </div>
               </div>
 
@@ -100,31 +68,62 @@
 
               <div class="setting-block">
                 <div class="setting-row">
-                  <span class="setting-label">Aspect Ratio</span>
-                  <span class="setting-meta" id="resolution-value">1280 × 720</span>
+                  <span class="setting-label">Inference Steps</span>
+                  <span class="setting-value"><span id="steps-value">50</span></span>
                 </div>
-                <div class="aspect-grid" role="radiogroup" aria-label="Aspect ratio">
-                  <button class="aspect-button aspect-button-active" data-aspect-ratio="16:9" type="button">
-                    16:9
-                  </button>
-                  <button class="aspect-button" data-aspect-ratio="9:16" type="button">
-                    9:16
-                  </button>
-                  <button class="aspect-button" data-aspect-ratio="1:1" type="button">
-                    1:1
-                  </button>
+                <input
+                  id="num-inference-steps"
+                  name="num-inference-steps"
+                  type="range"
+                  min="10"
+                  max="100"
+                  step="5"
+                  value="50"
+                />
+                <div class="range-markers">
+                  <span id="steps-min-label">10</span>
+                  <span id="steps-default-label">50</span>
+                  <span id="steps-max-label">100</span>
                 </div>
               </div>
 
-              <div class="metrics-row">
-                <div class="metric-chip">
-                  <span class="metric-label">Frames</span>
-                  <span class="metric-value" id="frames-value">121</span>
+              <div class="setting-divider"></div>
+
+              <div class="setting-block">
+                <div class="setting-row">
+                  <span class="setting-label">Guidance Scale</span>
+                  <span class="setting-value"><span id="guidance-value">3.5</span></span>
                 </div>
-                <div class="metric-chip">
-                  <span class="metric-label">FPS</span>
-                  <span class="metric-value" id="fps-value">24</span>
+                <input
+                  id="guidance-scale"
+                  name="guidance-scale"
+                  type="range"
+                  min="1.0"
+                  max="10.0"
+                  step="0.5"
+                  value="3.5"
+                />
+                <div class="range-markers">
+                  <span id="guidance-min-label">1.0</span>
+                  <span id="guidance-default-label">3.5</span>
+                  <span id="guidance-max-label">10.0</span>
                 </div>
+              </div>
+
+              <div class="setting-divider"></div>
+
+              <div class="setting-block">
+                <div class="setting-row">
+                  <span class="setting-label">Seed</span>
+                </div>
+                <input
+                  id="seed"
+                  name="seed"
+                  type="number"
+                  min="0"
+                  max="4294967295"
+                  placeholder="Random"
+                />
               </div>
             </section>
           </div>
@@ -165,13 +164,13 @@
 
           <div class="actions">
             <button id="generate-button" class="primary-action" type="submit">
-              Generate Payload
+              Generate Image
             </button>
             <button id="submit-button" class="secondary-hero-action" type="button">
               Submit to Endpoint
             </button>
             <p id="helper-copy" class="helper-copy">
-              Output matches the worker workflow contract: `input.workflow` plus optional `input.images`.
+              Output matches the Flux.1-dev handler contract: `input.prompt` with optional generation parameters.
             </p>
           </div>
         </form>
@@ -197,12 +196,14 @@
           <div class="payload-header">
             <div>
               <p class="payload-label">Response</p>
-              <h2>Submission result</h2>
+              <h2>Generated Image</h2>
             </div>
           </div>
           <div id="response-summary" class="payload-summary"></div>
           <p id="response-status" class="response-status" hidden></p>
-          <div id="response-media" class="response-media" hidden></div>
+          <div id="response-media" class="response-media" hidden>
+            <img id="generated-image" alt="Generated image" />
+          </div>
           <pre id="response-output"></pre>
         </section>
       </main>

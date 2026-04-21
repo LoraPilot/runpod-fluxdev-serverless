@@ -1,137 +1,76 @@
 # ==============================================================================
-# 🚀 INDRO STUDIO CLOUD - V5 GOD-TIER ENGINE
-# Architect: Indro Core Engineering Team
-# Features: 
-#   - Distributed Circuit Breakers & Seamless Node Failover
-#   - UUID-Safe Mutex Locks (Zero Deadlock)
-#   - VIP Rate Limiting & Priority Queue Routing
-#   - Real-Time Telemetry State Injection (for Frontend Progress Bars)
-#   - Auto-Prompt Cinematic Enhancement & NSFW Filtering
+# FLUX.1-dev Serverless Handler
+# Text-to-Image Generation using FluxPipeline with Redis Caching
 # ==============================================================================
 
 import runpod
 import base64
+import io
 import json
 import os
-import random
 import time
 import uuid
 import logging
 import hashlib
-import asyncio
-import aiohttp
-import boto3
+import random
 from pathlib import Path
-from botocore.config import Config
-import redis.asyncio as redis
+from typing import Any
 
-from workflow_support import (
-    apply_input_filename_map,
-    build_output_path,
-    build_workflow_cache_key,
-    collect_output_entries,
-    guess_media_type,
-    is_workflow_job,
-    write_input_images,
-)
+import redis
+import torch
+from diffusers import FluxPipeline
 
-# --- 1. ENTERPRISE OBSERVABILITY & SECURITY ---
+# --- Logging ---
 logging.basicConfig(level=logging.INFO, format='{"time":"%(asctime)s", "level":"%(levelname)s", "message":"%(message)s"}')
-logger = logging.getLogger("Indro-V5")
+logger = logging.getLogger("FluxHandler")
 
-API_KEY_SECRET = os.environ.get("INDRO_API_KEY", "dev_token_123")
-NSFW_BANNED_WORDS = {"child", "children", "kids", "teen", "lolita", "underage"} # Basic proxy for safety
-
+# --- Configuration ---
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
-redis_client = redis.from_url(REDIS_URL, decode_responses=True, socket_connect_timeout=5, retry_on_timeout=True)
-
-COMFY_NODES = os.environ.get("COMFY_NODES", "127.0.0.1:8188").split(",")
-COMFY_INPUT_DIR = os.environ.get("COMFY_INPUT_DIR", "/comfyui/input")
-COMFY_OUTPUT_DIR = os.environ.get("COMFY_OUTPUT_DIR", "/comfyui/output")
-MAX_INLINE_VIDEO_MB = int(os.environ.get("MAX_INLINE_VIDEO_MB", "50"))
 CACHE_TTL_SECONDS = int(os.environ.get("CACHE_TTL_SECONDS", "604800"))
+MODEL_PATH = os.environ.get("FLUX_MODEL_PATH", "/workspace/models/diffusion_models/flux1-dev.safetensors")
 
+# --- Redis Client ---
 try:
-    with open('video_ltx2_3_i2v_API.json', 'r') as f:
-        BASE_WORKFLOW = json.load(f)
-except:
-    raise RuntimeError("Worker cannot start without workflow JSON.")
+    redis_client = redis.from_url(REDIS_URL, decode_responses=True, socket_connect_timeout=5, retry_on_timeout=True)
+    logger.info("Connected to Redis")
+except Exception as e:
+    logger.warning(f"Failed to connect to Redis: {e}. Caching will be disabled.")
+    redis_client = None
 
-NODE_MAP = {"image": "269", "prompt": "267:266", "seed1": "267:216", "seed2": "267:237", "output": "75"}
+# --- Global Pipeline (lazy loaded) ---
+_flux_pipeline = None
 
-# --- 2. ADVANCED AI LOGIC ---
-class AIEngine:
-    @staticmethod
-    def enhance_prompt(prompt: str) -> str:
-        """Auto-injects cinematic modifiers if the user provides a lazy prompt."""
-        if len(prompt.split()) < 5:
-            return f"{prompt}, cinematic lighting, highly detailed, 8k resolution, unreal engine 5 render, photorealistic, masterpiece"
-        return prompt
 
-    @staticmethod
-    def safety_check(prompt: str) -> bool:
-        prompt_lower = prompt.lower()
-        return not any(word in prompt_lower for word in NSFW_BANNED_WORDS)
-
-# --- 3. THE DISTRIBUTED CIRCUIT BREAKER (My Custom Addition) ---
-class GPUFleetManager:
-    @staticmethod
-    async def get_best_node(session: aiohttp.ClientSession, is_vip: bool) -> str:
-        """Finds the least busy GPU. Skips 'DEAD' nodes using the Circuit Breaker."""
-        best_node = None
-        min_queue = 999
-        max_q_limit = 15 if is_vip else 5 # VIP users bypass standard queue caps
-        
-        for node in COMFY_NODES:
-            # CIRCUIT BREAKER: Check if node is flagged as dead in Redis
-            if await redis_client.get(f"circuit_breaker:{node}"):
-                continue 
-
-            try:
-                async with session.get(f"http://{node}/queue", timeout=1.5) as resp:
-                    data = await resp.json()
-                    q_size = len(data.get("queue_running", [])) + len(data.get("queue_pending", []))
-                    if q_size < min_queue:
-                        min_queue = q_size
-                        best_node = node
-            except Exception:
-                # Flag node as DEAD for 60 seconds if it fails to respond
-                await redis_client.setex(f"circuit_breaker:{node}", 60, "DEAD")
-                logger.warning(f"CIRCUIT BREAKER TRIPPED: {node} flagged as offline.")
-                
-        if not best_node or min_queue >= max_q_limit:
-            raise RuntimeError("FLEET OVERLOAD: All GPUs are busy or offline.")
-        return best_node
-
-# --- 4. CLOUD NATIVE STORAGE ---
-async def upload_to_s3_with_retry(
-    filepath: str, storage_key: str, content_type: str | None = None
-) -> str:
-    bucket = os.environ.get("AWS_BUCKET_NAME")
-    if not bucket:
-        raise RuntimeError("AWS_BUCKET_NAME missing.")
+def get_flux_pipeline():
+    """Lazy load FluxPipeline on first request."""
+    global _flux_pipeline
+    if _flux_pipeline is not None:
+        return _flux_pipeline
     
-    boto_config = Config(retries={'max_attempts': 3, 'mode': 'standard'})
-    def _upload():
-        s3 = boto3.client('s3', config=boto_config)
-        extra_args = {'ContentType': content_type} if content_type else None
-        if extra_args:
-            s3.upload_file(filepath, bucket, storage_key, ExtraArgs=extra_args)
+    logger.info("Loading FluxPipeline...")
+    try:
+        # Load from persistent storage or HuggingFace
+        if os.path.exists(MODEL_PATH):
+            logger.info(f"Loading Flux model from {MODEL_PATH}")
+            _flux_pipeline = FluxPipeline.from_pretrained(
+                "/workspace/models",
+                torch_dtype=torch.bfloat16,
+                use_safetensors=True
+            )
         else:
-            s3.upload_file(filepath, bucket, storage_key)
-        return s3.generate_presigned_url(
-            'get_object',
-            Params={'Bucket': bucket, 'Key': storage_key},
-            ExpiresIn=604800,
-        )
-    
-    for attempt in range(3):
-        try:
-            return await asyncio.to_thread(_upload)
-        except Exception as e:
-            if attempt == 2:
-                raise e
-            await asyncio.sleep(2 ** attempt)
+            logger.info("Loading Flux model from HuggingFace")
+            _flux_pipeline = FluxPipeline.from_pretrained(
+                "black-forest-labs/FLUX.1-dev",
+                torch_dtype=torch.bfloat16
+            )
+        
+        # Enable CPU offload if GPU memory is limited
+        _flux_pipeline.enable_model_cpu_offload()
+        logger.info("FluxPipeline loaded successfully")
+        return _flux_pipeline
+    except Exception as e:
+        logger.error(f"Failed to load FluxPipeline: {e}")
+        raise
 
 
 def decode_cached_response(raw_value: str) -> dict | None:
@@ -148,393 +87,116 @@ def decode_cached_response(raw_value: str) -> dict | None:
     return response
 
 
-async def build_result_payload(filepath: str, job_id: str) -> dict:
-    if os.environ.get("AWS_BUCKET_NAME"):
-        return {
-            "video_url": await upload_to_s3_with_retry(
-                filepath,
-                f"renders/{job_id}.mp4",
-                "video/mp4",
-            )
-        }
-
-    file_size_mb = os.path.getsize(filepath) / (1024 * 1024)
-    if file_size_mb > MAX_INLINE_VIDEO_MB:
-        raise RuntimeError(
-            f"Video output is {file_size_mb:.1f}MB, which exceeds MAX_INLINE_VIDEO_MB={MAX_INLINE_VIDEO_MB}. "
-            "Configure S3 upload or raise the inline limit."
-        )
-
-    with open(filepath, "rb") as video_file:
-        return {"video_base64": base64.b64encode(video_file.read()).decode("utf-8")}
-
-
-def build_job_image_inputs(
-    job_id: str, images: list[dict[str, str]] | None
-) -> tuple[dict[str, str], list[dict[str, str]]]:
-    if not images:
-        return {}, []
-
-    replacements: dict[str, str] = {}
-    prepared_images: list[dict[str, str]] = []
-
-    for image in images:
-        original_name = image.get("name")
-        image_data = image.get("image")
-        if not original_name or not image_data:
-            raise ValueError(
-                "'images' must be a list of objects with 'name' and 'image' keys."
-            )
-
-        unique_name = str(Path(job_id) / Path(original_name)).replace("\\", "/")
-        replacements[original_name] = unique_name
-        prepared_images.append({"name": unique_name, "image": image_data})
-
-    return replacements, prepared_images
-
-
-def cleanup_input_files(filepaths: list[str]) -> None:
-    for filepath in filepaths:
-        try:
-            path = Path(filepath)
-            if path.exists():
-                path.unlink()
-        except OSError:
-            logger.warning(f"Failed to clean up input file: {filepath}")
-
-    for filepath in filepaths:
-        parent = Path(filepath).parent
-        input_root = Path(COMFY_INPUT_DIR).resolve()
-        while parent != input_root and parent.exists():
-            try:
-                parent.rmdir()
-            except OSError:
-                break
-            parent = parent.parent
-
-
-async def build_output_entry(
-    filepath: str,
-    job_id: str,
-    entry: dict[str, str],
-    index: int,
-) -> dict:
-    media_type = guess_media_type(entry["filename"], entry["media_kind"])
-    path = Path(filepath)
-
-    if entry["media_kind"] == "video":
-        file_size_mb = path.stat().st_size / (1024 * 1024)
-        if file_size_mb > MAX_INLINE_VIDEO_MB and not os.environ.get("AWS_BUCKET_NAME"):
-            raise RuntimeError(
-                f"Video output is {file_size_mb:.1f}MB, which exceeds MAX_INLINE_VIDEO_MB={MAX_INLINE_VIDEO_MB}. "
-                "Configure S3 upload or raise the inline limit."
-            )
-
-    if os.environ.get("AWS_BUCKET_NAME"):
-        storage_key = f"renders/{job_id}/{index:02d}-{path.name}"
-        data = await upload_to_s3_with_retry(filepath, storage_key, media_type)
-        output_type = "url"
-    else:
-        with open(filepath, "rb") as file_handle:
-            data = base64.b64encode(file_handle.read()).decode("utf-8")
-        output_type = "base64"
-
-    return {
-        "filename": entry["filename"],
-        "subfolder": entry.get("subfolder", ""),
-        "type": output_type,
-        "data": data,
-        "media_type": media_type,
+def build_cache_key(prompt: str, width: int, height: int, num_inference_steps: int, guidance_scale: float) -> str:
+    """Build a cache key from generation parameters."""
+    params = {
+        "prompt": prompt,
+        "width": width,
+        "height": height,
+        "num_inference_steps": num_inference_steps,
+        "guidance_scale": guidance_scale,
     }
+    payload = json.dumps(params, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-async def build_workflow_output_payload(history_entry: dict, job_id: str) -> dict:
-    entries = collect_output_entries(history_entry.get("outputs", {}))
-    if not entries:
-        raise RuntimeError("Workflow completed without supported outputs.")
-
-    output: dict[str, list[dict]] = {"images": [], "videos": []}
-    for index, entry in enumerate(entries):
-        output_path = build_output_path(COMFY_OUTPUT_DIR, entry)
-        if not output_path.exists():
-            raise RuntimeError(f"Expected output file missing: {output_path}")
-
-        payload = await build_output_entry(str(output_path), job_id, entry, index)
-        collection = "images" if entry["media_kind"] == "image" else "videos"
-        output[collection].append(payload)
-
-    return {key: value for key, value in output.items() if value}
+def image_to_base64(image) -> str:
+    """Convert PIL image to base64 string."""
+    buffered = io.BytesIO()
+    image.save(buffered, format="PNG")
+    return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
 
-def extract_custom_video_filename(history_entry: dict) -> str | None:
-    node_output = history_entry.get('outputs', {}).get(NODE_MAP["output"], {})
-    for key in ["videos", "gifs"]:
-        if key in node_output and node_output[key]:
-            return node_output[key][0]['filename']
-    return None
-
-
-async def wait_for_workflow_completion(
-    session: aiohttp.ClientSession,
-    target_node: str,
-    prompt_id: str,
-    start_time: float,
-) -> dict:
-    fail_count = 0
-    while True:
-        elapsed = time.time() - start_time
-        if elapsed > 900:
-            raise TimeoutError("Render timeout.")
-
-        try:
-            async with session.get(f"http://{target_node}/history/{prompt_id}") as resp:
-                history_data = await resp.json()
-        except Exception:
-            fail_count += 1
-            if fail_count > 5:
-                raise RuntimeError(f"Node {target_node} disconnected.")
-            await asyncio.sleep(2)
-            continue
-
-        if prompt_id in history_data:
-            return history_data[prompt_id]
-
-        await asyncio.sleep(min(2 + elapsed / 30, 5))
-
-
-async def execute_workflow_with_failover(
-    session: aiohttp.ClientSession,
-    workflow: dict,
-    job_id: str,
-    is_vip: bool,
-    start_time: float,
-) -> tuple[str, dict]:
-    for failover_attempt in range(2):
-        target_node = None
-        try:
-            target_node = await GPUFleetManager.get_best_node(session, is_vip)
-            await redis_client.hset(
-                f"job_status:{job_id}",
-                mapping={"status": "rendering", "node": target_node},
-            )
-            logger.info(f"[{job_id}] Routed to Node: {target_node}")
-
-            async with session.post(
-                f"http://{target_node}/prompt", json={"prompt": workflow}
-            ) as resp:
-                prompt_response = await resp.json()
-                prompt_id = prompt_response["prompt_id"]
-
-            history_entry = await wait_for_workflow_completion(
-                session,
-                target_node,
-                prompt_id,
-                start_time,
-            )
-            return target_node, history_entry
-        except Exception as e:
-            logger.warning(f"[{job_id}] GPU {target_node} failed. ({str(e)})")
-            if target_node:
-                await redis_client.setex(f"circuit_breaker:{target_node}", 60, "DEAD")
-            if failover_attempt == 1:
-                raise RuntimeError("All failover attempts exhausted.")
-            logger.info(f"[{job_id}] Initiating Seamless Failover to new GPU...")
-
-    raise RuntimeError("All failover attempts exhausted.")
-
-
-async def handle_custom_job(job_id: str, job_input: dict, start_time: float) -> dict:
-    api_key = job_input.get("api_key")
-    if api_key != API_KEY_SECRET:
-        raise PermissionError("401 Unauthorized")
-
-    priority = job_input.get("priority", "standard")
-    is_vip = priority == "vip"
-
-    rate_key = f"rate_limit:{api_key}"
-    req_count = await redis_client.incr(rate_key)
-    if req_count == 1:
-        await redis_client.expire(rate_key, 60)
-    limit = 50 if is_vip else 10
-    if req_count > limit:
-        raise PermissionError("429 Too Many Requests. Rate Limit Exceeded.")
-
-    raw_prompt = job_input.get("prompt", "")
-    image_url = job_input.get("image_url", "")
-    if not image_url or not raw_prompt:
-        raise ValueError("Missing 'image_url' or 'prompt'.")
-
-    if not AIEngine.safety_check(raw_prompt):
-        raise ValueError("Prompt violates safety protocols.")
-
-    enhanced_prompt = AIEngine.enhance_prompt(raw_prompt)
-    cache_hash = hashlib.sha256(f"{image_url}_{enhanced_prompt}".encode()).hexdigest()
-    lock_token = str(uuid.uuid4())
-
-    redis_state = await redis_client.get(cache_hash)
-    cached_response = decode_cached_response(redis_state)
-    if cached_response:
-        await redis_client.hset(
-            f"job_status:{job_id}",
-            mapping={"status": "completed", "cache_hit": "true"},
-        )
-        return cached_response
-
-    lock_acquired = await redis_client.set(cache_hash, lock_token, ex=1200, nx=True)
-    if not lock_acquired:
-        logger.info(f"[{job_id}] DEDUPLICATION ACTIVE. Waiting...")
-        await redis_client.hset(
-            f"job_status:{job_id}",
-            mapping={"status": "waiting_in_queue"},
-        )
-        for _ in range(240):
-            await asyncio.sleep(5)
-            new_state = await redis_client.get(cache_hash)
-            cached_response = decode_cached_response(new_state)
-            if cached_response:
-                return cached_response
-        raise TimeoutError("Deduplication timeout.")
-
-    try:
-        workflow = json.loads(json.dumps(BASE_WORKFLOW))
-        workflow[NODE_MAP["image"]]["inputs"]["image"] = image_url
-        workflow[NODE_MAP["prompt"]]["inputs"]["value"] = enhanced_prompt
-        workflow[NODE_MAP["seed1"]]["inputs"]["noise_seed"] = random.randint(1, 10**15)
-        workflow[NODE_MAP["seed2"]]["inputs"]["noise_seed"] = random.randint(1, 10**15)
-
-        http_timeout = aiohttp.ClientTimeout(total=1000)
-        async with aiohttp.ClientSession(timeout=http_timeout) as session:
-            target_node, history_entry = await execute_workflow_with_failover(
-                session, workflow, job_id, is_vip, start_time
-            )
-
-        video_filename = extract_custom_video_filename(history_entry)
-        if not video_filename:
-            raise RuntimeError("Workflow completed without a video output.")
-
-        await redis_client.hset(f"job_status:{job_id}", mapping={"status": "uploading"})
-        output_video_path = os.path.join(COMFY_OUTPUT_DIR, video_filename)
-        result_payload = await build_result_payload(output_video_path, job_id)
-        response = {
-            "status": "success",
-            **result_payload,
-            "metadata": {
-                "render_time_sec": round(time.time() - start_time, 2),
-                "node_used": target_node,
-            },
-        }
-
-        current_lock = await redis_client.get(cache_hash)
-        if current_lock == lock_token:
-            await redis_client.set(cache_hash, json.dumps(response), ex=CACHE_TTL_SECONDS)
-
-        return response
-    finally:
-        try:
-            if await redis_client.get(cache_hash) == lock_token:
-                await redis_client.delete(cache_hash)
-        except Exception:
-            pass
-
-
-async def handle_workflow_job(job_id: str, job_input: dict, start_time: float) -> dict:
-    workflow = job_input.get("workflow")
-    if not isinstance(workflow, dict):
-        raise ValueError("Missing 'workflow'.")
-
-    images = job_input.get("images")
-    priority = job_input.get("priority", "standard")
-    is_vip = priority == "vip"
-
-    cache_hash = build_workflow_cache_key(workflow, images)
-    lock_token = str(uuid.uuid4())
-
-    redis_state = await redis_client.get(cache_hash)
-    cached_response = decode_cached_response(redis_state)
-    if cached_response:
-        await redis_client.hset(
-            f"job_status:{job_id}",
-            mapping={"status": "completed", "cache_hit": "true"},
-        )
-        return cached_response
-
-    lock_acquired = await redis_client.set(cache_hash, lock_token, ex=1200, nx=True)
-    if not lock_acquired:
-        logger.info(f"[{job_id}] DEDUPLICATION ACTIVE. Waiting...")
-        await redis_client.hset(
-            f"job_status:{job_id}",
-            mapping={"status": "waiting_in_queue"},
-        )
-        for _ in range(240):
-            await asyncio.sleep(5)
-            new_state = await redis_client.get(cache_hash)
-            cached_response = decode_cached_response(new_state)
-            if cached_response:
-                return cached_response
-        raise TimeoutError("Deduplication timeout.")
-
-    written_input_files: list[str] = []
-    try:
-        name_map, prepared_images = build_job_image_inputs(job_id, images)
-        prepared_workflow = apply_input_filename_map(workflow, name_map)
-        written_input_files = write_input_images(COMFY_INPUT_DIR, prepared_images)
-
-        http_timeout = aiohttp.ClientTimeout(total=1000)
-        async with aiohttp.ClientSession(timeout=http_timeout) as session:
-            target_node, history_entry = await execute_workflow_with_failover(
-                session,
-                prepared_workflow,
-                job_id,
-                is_vip,
-                start_time,
-            )
-
-        await redis_client.hset(f"job_status:{job_id}", mapping={"status": "uploading"})
-        output_payload = await build_workflow_output_payload(history_entry, job_id)
-        response = {
-            "status": "success",
-            "output": output_payload,
-            "metadata": {
-                "render_time_sec": round(time.time() - start_time, 2),
-                "node_used": target_node,
-            },
-        }
-
-        current_lock = await redis_client.get(cache_hash)
-        if current_lock == lock_token:
-            await redis_client.set(cache_hash, json.dumps(response), ex=CACHE_TTL_SECONDS)
-
-        return response
-    finally:
-        cleanup_input_files(written_input_files)
-        try:
-            if await redis_client.get(cache_hash) == lock_token:
-                await redis_client.delete(cache_hash)
-        except Exception:
-            pass
-
-# --- 5. THE MASTER HANDLER ---
-async def handler(job: dict) -> dict:
+def handler(job: dict) -> dict:
+    """RunPod serverless handler for FLUX.1-dev text-to-image generation."""
     job_id = job.get('id', uuid.uuid4().hex)
     job_input = job.get('input', {})
     start_time = time.time()
     
-    # TELEMETRY: Announce Job Start
-    await redis_client.hset(f"job_status:{job_id}", mapping={"status": "initializing", "progress": "0%"})
-    await redis_client.expire(f"job_status:{job_id}", 3600)
-
+    # Extract parameters
+    prompt = job_input.get("prompt", "")
+    if not prompt:
+        return {"status": "error", "error": "Missing 'prompt' parameter"}
+    
+    width = job_input.get("width", 1024)
+    height = job_input.get("height", 1024)
+    num_inference_steps = job_input.get("num_inference_steps", 50)
+    guidance_scale = job_input.get("guidance_scale", 3.5)
+    seed = job_input.get("seed", random.randint(0, 2**32 - 1))
+    
+    # Validate parameters
+    if not isinstance(width, int) or width < 512 or width > 2048:
+        return {"status": "error", "error": "width must be between 512 and 2048"}
+    if not isinstance(height, int) or height < 512 or height > 2048:
+        return {"status": "error", "error": "height must be between 512 and 2048"}
+    if not isinstance(num_inference_steps, int) or num_inference_steps < 10 or num_inference_steps > 100:
+        return {"status": "error", "error": "num_inference_steps must be between 10 and 100"}
+    if not isinstance(guidance_scale, (int, float)) or guidance_scale < 1.0 or guidance_scale > 10.0:
+        return {"status": "error", "error": "guidance_scale must be between 1.0 and 10.0"}
+    
+    logger.info(f"[{job_id}] Processing prompt: {prompt[:100]}...")
+    
+    # Check Redis cache
+    cache_key = build_cache_key(prompt, width, height, num_inference_steps, guidance_scale)
+    if redis_client:
+        try:
+            cached_response = decode_cached_response(redis_client.get(cache_key))
+            if cached_response:
+                logger.info(f"[{job_id}] Cache hit for key: {cache_key[:16]}...")
+                return cached_response
+        except Exception as e:
+            logger.warning(f"[{job_id}] Redis cache check failed: {e}")
+    
+    # Generate image
     try:
-        if is_workflow_job(job_input):
-            response = await handle_workflow_job(job_id, job_input, start_time)
-        else:
-            response = await handle_custom_job(job_id, job_input, start_time)
-
-        await redis_client.hset(f"job_status:{job_id}", mapping={"status": "completed"})
+        pipeline = get_flux_pipeline()
+        
+        generator = torch.Generator("cpu").manual_seed(seed)
+        
+        image = pipeline(
+            prompt=prompt,
+            width=width,
+            height=height,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            generator=generator,
+            max_sequence_length=512,
+        ).images[0]
+        
+        # Convert to base64
+        image_base64 = image_to_base64(image)
+        
+        generation_time = round(time.time() - start_time, 2)
+        logger.info(f"[{job_id}] Image generated in {generation_time}s")
+        
+        response = {
+            "status": "success",
+            "image": image_base64,
+            "metadata": {
+                "generation_time_sec": generation_time,
+                "seed": seed,
+                "width": width,
+                "height": height,
+                "num_inference_steps": num_inference_steps,
+                "guidance_scale": guidance_scale,
+            },
+        }
+        
+        # Cache response
+        if redis_client:
+            try:
+                redis_client.set(cache_key, json.dumps(response), ex=CACHE_TTL_SECONDS)
+                logger.info(f"[{job_id}] Response cached")
+            except Exception as e:
+                logger.warning(f"[{job_id}] Failed to cache response: {e}")
+        
         return response
-
+        
     except Exception as e:
-        await redis_client.hset(f"job_status:{job_id}", mapping={"status": "failed", "error": str(e)})
+        logger.error(f"[{job_id}] Generation failed: {e}")
         return {"status": "error", "error": str(e)}
 
-logger.info("Initializing Indro Serverless Engine V5 (GOD-TIER)...")
-runpod.serverless.start({"handler": handler})
+
+if __name__ == "__main__":
+    logger.info("Starting FLUX.1-dev Serverless Handler...")
+    runpod.serverless.start({"handler": handler})

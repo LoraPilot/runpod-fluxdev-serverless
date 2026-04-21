@@ -1,4 +1,4 @@
-# Network Volumes & Model Paths
+# Network Volumes for FLUX.1-dev Model Paths
 
 This document explains how to use RunPod **Network Volumes** with this worker, how model paths are resolved inside the container, which worker state is persisted on the volume, and how to debug cases where models are not detected.
 

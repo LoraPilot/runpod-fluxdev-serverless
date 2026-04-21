@@ -111,7 +111,6 @@ Configure these variables **only** if you want the worker to upload generated im
 | `AWS_DEFAULT_REGION` | AWS region used by the S3 client. | `eu-central-1` |
 
 The current worker uploads directly with `boto3` and returns presigned URLs.
-
 ### Example S3 Response
 
 If the S3 environment variables are correctly configured, a successful workflow response can look like this:

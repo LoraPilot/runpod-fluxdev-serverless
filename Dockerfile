@@ -14,14 +14,11 @@ ARG PYTORCH_INDEX_URL=https://download.pytorch.org/whl/cu128
 ARG PYTORCH_PACKAGES="torch torchvision torchaudio"
 ARG EXTRA_PYTHON_PACKAGES=""
 ARG EXTRA_PYTHON_INDEX_URL=""
-ARG INSTALL_LTX_VIDEO_NODES=false
-ARG LTX_VIDEO_REF=master
 ARG INSTALL_COMFYUI_MANAGER=true
 ARG COMFYUI_MANAGER_REF=""
 ARG INSTALL_COMFYUI_DOWNLOADER=true
 ARG COMFYUI_DOWNLOADER_REF=""
-ARG LTX23_PRELOAD_VARIANT=""
-ARG LTX23_PRELOAD_UPSCALERS=false
+ARG FLUX_DEV_PRELOAD=""
 
 # Prevents prompts from packages asking for user input during installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -102,11 +99,11 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     fi
 
 # Add application code and scripts
-ADD src/start.sh src/bootstrap_workspace.sh src/bootstrap_ltx23.sh src/network_volume.py handler.py workflow_support.py frontend_app.py ltx_payload_builder.py video_ltx2_3_i2v_API.json test_input.json ./
+ADD src/start.sh src/bootstrap_workspace.sh src/bootstrap_flux.sh src/network_volume.py handler.py frontend_app.py test_input.json ./
 ADD frontend /frontend
 RUN chmod +x /start.sh
 RUN chmod +x /bootstrap_workspace.sh
-RUN chmod +x /bootstrap_ltx23.sh
+RUN chmod +x /bootstrap_flux.sh
 
 # Add script to install custom nodes
 COPY scripts/comfy-node-install.sh /usr/local/bin/comfy-node-install
@@ -145,15 +142,7 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
       fi; \
     fi
 
-# Install the official LTX ComfyUI nodes when requested by the image target.
-RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
-    if [ "${INSTALL_LTX_VIDEO_NODES}" = "true" ]; then \
-      git clone --depth=1 --branch "${LTX_VIDEO_REF}" https://github.com/Lightricks/ComfyUI-LTXVideo.git /comfyui/custom_nodes/ComfyUI-LTXVideo && \
-      python -m pip install -r /comfyui/custom_nodes/ComfyUI-LTXVideo/requirements.txt; \
-    fi
-
-ENV LTX23_PRELOAD_VARIANT="${LTX23_PRELOAD_VARIANT}"
-ENV LTX23_PRELOAD_UPSCALERS="${LTX23_PRELOAD_UPSCALERS}"
+ENV FLUX_DEV_PRELOAD="${FLUX_DEV_PRELOAD}"
 
 # Set the default command to run when starting the container
 CMD ["/start.sh"]
