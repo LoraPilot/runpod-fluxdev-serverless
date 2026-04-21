@@ -44,8 +44,8 @@ This is the most flexible and recommended approach for creating reproducible, cu
 - Add a `COPY` command to your `Dockerfile`:
 
   ```Dockerfile
-  # Copy local static input files into the ComfyUI input directory
-  COPY input/ /comfyui/input/
+  # Copy local static input files
+  COPY input/ /workspace/input/
   ```
 
 - These files can then be referenced in your workflow using a "Load Image" (or similar) node pointing to the filename (e.g.,`my_static_image.png`).
