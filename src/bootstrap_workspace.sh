@@ -265,13 +265,11 @@ EOF
 }
 
 bootstrap_workspace() {
-    local comfy_image_root="${COMFY_IMAGE_ROOT:-/comfyui}"
-    local comfy_runtime_root="${COMFY_RUNTIME_ROOT:-/comfyui}"
     local venv_image_root="${VENV_IMAGE_ROOT:-/opt/venv}"
     local venv_runtime_root="${VENV_RUNTIME_ROOT:-/opt/venv}"
-    local extra_model_paths_file="${EXTRA_MODEL_PATHS_FILE:-${comfy_runtime_root}/extra_model_paths.yaml}"
+    local extra_model_paths_file="${EXTRA_MODEL_PATHS_FILE:-${venv_runtime_root}/extra_model_paths.yaml}"
     local workflow_template_source_root="${WORKFLOW_TEMPLATE_SOURCE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-    local workflow_target_dir_rel="${COMFY_WORKFLOW_TARGET_DIR:-user/default/workflows}"
+    local workflow_target_dir_rel="${workflow_target_dir:-user/default/workflows}"
     local workflow_target_dir=""
 
     if [ "${PERSIST_WORKSPACE:-true}" != "true" ]; then

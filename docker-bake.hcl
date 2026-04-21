@@ -10,17 +10,9 @@ variable "RELEASE_VERSION" {
   default = "latest"
 }
 
-variable "COMFYUI_VERSION" {
-  default = "latest"
-}
-
 # Global defaults for standard CUDA 12.8.1 images
 variable "BASE_IMAGE" {
   default = "nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04"
-}
-
-variable "CUDA_VERSION_FOR_COMFY" {
-  default = ""
 }
 
 variable "ENABLE_PYTORCH_UPGRADE" {
@@ -41,14 +33,6 @@ variable "EXTRA_PYTHON_PACKAGES" {
 
 variable "EXTRA_PYTHON_INDEX_URL" {
   default = ""
-}
-
-variable "INSTALL_COMFYUI_MANAGER" {
-  default = "true"
-}
-
-variable "COMFYUI_MANAGER_REF" {
-  default = "main"
 }
 
 variable "FLUX_DEV_PRELOAD" {
