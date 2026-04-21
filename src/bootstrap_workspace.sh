@@ -324,7 +324,6 @@ bootstrap_workspace() {
     export TRITON_CACHE_DIR="${cache_root}/triton"
     export XDG_CACHE_HOME="${cache_root}/xdg"
 
-    write_extra_model_paths "${WORKSPACE_ROOT}" "${extra_model_paths_file}"
 
     bootstrap_log "Using persistent workspace at ${WORKSPACE_ROOT}"
     bootstrap_log "Virtualenv: ${venv_root}"

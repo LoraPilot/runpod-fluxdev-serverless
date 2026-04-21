@@ -66,15 +66,12 @@ target "base" {
   platforms = ["linux/amd64"]
   args = {
     BASE_IMAGE = "${BASE_IMAGE}"
-    CUDA_VERSION_FOR_COMFY = "${CUDA_VERSION_FOR_COMFY}"
     ENABLE_PYTORCH_UPGRADE = "${ENABLE_PYTORCH_UPGRADE}"
     PYTORCH_INDEX_URL = "${PYTORCH_INDEX_URL}"
     PYTORCH_PACKAGES = "${PYTORCH_PACKAGES}"
     EXTRA_PYTHON_PACKAGES = "${EXTRA_PYTHON_PACKAGES}"
     EXTRA_PYTHON_INDEX_URL = "${EXTRA_PYTHON_INDEX_URL}"
-    INSTALL_COMFYUI_MANAGER = "${INSTALL_COMFYUI_MANAGER}"
-    COMFYUI_MANAGER_REF = "${COMFYUI_MANAGER_REF}"
-    FLUX_DEV_PRELOAD = "${FLUX_DEV_PRELOAD}"
+        FLUX_DEV_PRELOAD = "${FLUX_DEV_PRELOAD}"
   }
   tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-base"]
 }
@@ -86,15 +83,12 @@ target "base-cuda12-8-1" {
   platforms = ["linux/amd64"]
   args = {
     BASE_IMAGE = "nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04"
-    CUDA_VERSION_FOR_COMFY = ""
     ENABLE_PYTORCH_UPGRADE = "true"
     PYTORCH_INDEX_URL = "https://download.pytorch.org/whl/cu128"
     PYTORCH_PACKAGES = "${PYTORCH_PACKAGES}"
     EXTRA_PYTHON_PACKAGES = "${EXTRA_PYTHON_PACKAGES}"
     EXTRA_PYTHON_INDEX_URL = "${EXTRA_PYTHON_INDEX_URL}"
-    INSTALL_COMFYUI_MANAGER = "${INSTALL_COMFYUI_MANAGER}"
-    COMFYUI_MANAGER_REF = "${COMFYUI_MANAGER_REF}"
-    FLUX_DEV_PRELOAD = "${FLUX_DEV_PRELOAD}"
+        FLUX_DEV_PRELOAD = "${FLUX_DEV_PRELOAD}"
   }
   tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-base-cuda12.8.1"]
 }
@@ -106,15 +100,12 @@ target "base-cuda13-0" {
   platforms = ["linux/amd64"]
   args = {
     BASE_IMAGE = "nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04"
-    CUDA_VERSION_FOR_COMFY = ""
     ENABLE_PYTORCH_UPGRADE = "true"
     PYTORCH_INDEX_URL = "https://download.pytorch.org/whl/cu130"
     PYTORCH_PACKAGES = "${PYTORCH_PACKAGES}"
     EXTRA_PYTHON_PACKAGES = "${EXTRA_PYTHON_PACKAGES}"
     EXTRA_PYTHON_INDEX_URL = "${EXTRA_PYTHON_INDEX_URL}"
-    INSTALL_COMFYUI_MANAGER = "${INSTALL_COMFYUI_MANAGER}"
-    COMFYUI_MANAGER_REF = "${COMFYUI_MANAGER_REF}"
-    FLUX_DEV_PRELOAD = "${FLUX_DEV_PRELOAD}"
+        FLUX_DEV_PRELOAD = "${FLUX_DEV_PRELOAD}"
   }
   tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-base-cuda13.0"]
 }
@@ -126,15 +117,12 @@ target "flux-dev" {
   platforms = ["linux/amd64"]
   args = {
     BASE_IMAGE = "nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04"
-    CUDA_VERSION_FOR_COMFY = ""
     ENABLE_PYTORCH_UPGRADE = "true"
     PYTORCH_INDEX_URL = "https://download.pytorch.org/whl/cu128"
     PYTORCH_PACKAGES = "${PYTORCH_PACKAGES}"
     EXTRA_PYTHON_PACKAGES = "${EXTRA_PYTHON_PACKAGES}"
     EXTRA_PYTHON_INDEX_URL = "${EXTRA_PYTHON_INDEX_URL}"
-    INSTALL_COMFYUI_MANAGER = "${INSTALL_COMFYUI_MANAGER}"
-    COMFYUI_MANAGER_REF = "${COMFYUI_MANAGER_REF}"
-    FLUX_DEV_PRELOAD = "true"
+        FLUX_DEV_PRELOAD = "true"
   }
   tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-flux-dev-cu128"]
 }
@@ -146,15 +134,12 @@ target "flux-dev-cuda13" {
   platforms = ["linux/amd64"]
   args = {
     BASE_IMAGE = "nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04"
-    CUDA_VERSION_FOR_COMFY = ""
     ENABLE_PYTORCH_UPGRADE = "true"
     PYTORCH_INDEX_URL = "https://download.pytorch.org/whl/cu130"
     PYTORCH_PACKAGES = "${PYTORCH_PACKAGES}"
     EXTRA_PYTHON_PACKAGES = "${EXTRA_PYTHON_PACKAGES}"
     EXTRA_PYTHON_INDEX_URL = "${EXTRA_PYTHON_INDEX_URL}"
-    INSTALL_COMFYUI_MANAGER = "${INSTALL_COMFYUI_MANAGER}"
-    COMFYUI_MANAGER_REF = "${COMFYUI_MANAGER_REF}"
-    FLUX_DEV_PRELOAD = "true"
+        FLUX_DEV_PRELOAD = "true"
   }
   tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-flux-dev-cu130"]
 }

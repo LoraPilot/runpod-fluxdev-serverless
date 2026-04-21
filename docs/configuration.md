@@ -53,15 +53,10 @@ With workspace persistence enabled, the worker uses these paths:
 | Purpose | Path |
 | ------- | ---- |
 | Persistent root | `/workspace` |
-| ComfyUI code and user config | `/workspace/worker-comfyui/comfyui` |
-| Python virtualenv | `/workspace/worker-comfyui/venv` |
-| Download and compiler caches | `/workspace/worker-comfyui/cache` |
-| Shared bootstrap lock | `/workspace/worker-comfyui/.bootstrap.lock` |
+| Python virtualenv | `/workspace/worker-venv/venv` |
+| Download and compiler caches | `/workspace/worker-venv/cache` |
+| Shared bootstrap lock | `/workspace/worker-venv/.bootstrap.lock` |
 | Shared model root | `/workspace/models` |
-| Generated model-path config | `/comfyui/extra_model_paths.yaml` |
-| Current handler input staging | `/comfyui/input` |
-| Current handler output pickup | `/comfyui/output` |
-| ComfyUI-Manager config | `/comfyui/user/default/ComfyUI-Manager/config.ini` |
 
 On serverless, `/workspace` is the worker's internal alias for `/runpod-volume`.
 
