@@ -1,238 +1,184 @@
 import unittest
-from unittest.mock import patch, MagicMock, mock_open, Mock
+from unittest.mock import patch, MagicMock
 import sys
 import os
 import json
-import base64
 
-# Make sure that "src" is known and can be used to import handler.py
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
-from src import handler
-
-# Local folder for test resources
-RUNPOD_WORKER_FLUX_TEST_RESOURCES_IMAGES = "./test_resources/images"
+# Add parent directory to path to import handler.py
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import handler
 
 
-class TestRunpodWorkerFlux(unittest.TestCase):
-    def test_valid_input_with_workflow_only(self):
-        input_data = {"workflow": {"key": "value"}}
-        validated_data, error = handler.validate_input(input_data)
-        self.assertIsNone(error)
-        self.assertEqual(validated_data, {"workflow": {"key": "value"}, "images": None})
+class TestFluxHandler(unittest.TestCase):
+    """Test cases for FLUX.1-dev handler functions."""
 
-    def test_valid_input_with_workflow_and_images(self):
-        input_data = {
-            "workflow": {"key": "value"},
-            "images": [{"name": "image1.png", "image": "base64string"}],
+    def test_validate_generation_params_valid(self):
+        """Test validation with valid parameters."""
+        params = {
+            "width": 1024,
+            "height": 1024,
+            "num_inference_steps": 50,
+            "guidance_scale": 3.5,
         }
-        validated_data, error = handler.validate_input(input_data)
-        self.assertIsNone(error)
-        self.assertEqual(validated_data, input_data)
+        is_valid, error_msg = handler.validate_generation_params(params)
+        self.assertTrue(is_valid)
+        self.assertIsNone(error_msg)
 
-    def test_input_missing_workflow(self):
-        input_data = {"images": [{"name": "image1.png", "image": "base64string"}]}
-        validated_data, error = handler.validate_input(input_data)
-        self.assertIsNotNone(error)
-        self.assertEqual(error, "Missing 'workflow' parameter")
-
-    def test_input_with_invalid_images_structure(self):
-        input_data = {
-            "workflow": {"key": "value"},
-            "images": [{"name": "image1.png"}],  # Missing 'image' key
+    def test_validate_generation_params_invalid_width(self):
+        """Test validation with invalid width."""
+        params = {
+            "width": 100,  # Below minimum
+            "height": 1024,
+            "num_inference_steps": 50,
+            "guidance_scale": 3.5,
         }
-        validated_data, error = handler.validate_input(input_data)
-        self.assertIsNotNone(error)
-        self.assertEqual(
-            error, "'images' must be a list of objects with 'name' and 'image' keys"
-        )
+        is_valid, error_msg = handler.validate_generation_params(params)
+        self.assertFalse(is_valid)
+        self.assertIn("width", error_msg)
 
-    def test_invalid_json_string_input(self):
-        input_data = "invalid json"
-        validated_data, error = handler.validate_input(input_data)
-        self.assertIsNotNone(error)
-        self.assertEqual(error, "Invalid JSON format in input")
-
-    def test_valid_json_string_input(self):
-        input_data = '{"workflow": {"key": "value"}}'
-        validated_data, error = handler.validate_input(input_data)
-        self.assertIsNone(error)
-        self.assertEqual(validated_data, {"workflow": {"key": "value"}, "images": None})
-
-    def test_empty_input(self):
-        input_data = None
-        validated_data, error = handler.validate_input(input_data)
-        self.assertIsNotNone(error)
-        self.assertEqual(error, "Please provide input")
-
-    @patch("handler.requests.get")
-    def test_check_server_server_up(self, mock_requests):
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_requests.return_value = mock_response
-
-        result = handler.check_server("http://127.0.0.1:8188", 1, 50)
-        self.assertTrue(result)
-
-    @patch("handler.requests.get")
-    def test_check_server_server_down(self, mock_requests):
-        mock_requests.get.side_effect = handler.requests.RequestException()
-        result = handler.check_server("http://127.0.0.1:8188", 1, 50)
-        self.assertFalse(result)
-
-    @patch("handler.urllib.request.urlopen")
-    def test_queue_prompt(self, mock_urlopen):
-        mock_response = MagicMock()
-        mock_response.read.return_value = json.dumps({"prompt_id": "123"}).encode()
-        mock_urlopen.return_value = mock_response
-        result = handler.queue_workflow({"prompt": "test"})
-        self.assertEqual(result, {"prompt_id": "123"})
-
-    @patch("handler.urllib.request.urlopen")
-    def test_get_history(self, mock_urlopen):
-        # Mock response data as a JSON string
-        mock_response_data = json.dumps({"key": "value"}).encode("utf-8")
-
-        # Define a mock response function for `read`
-        def mock_read():
-            return mock_response_data
-
-        # Create a mock response object
-        mock_response = Mock()
-        mock_response.read = mock_read
-
-        # Mock the __enter__ and __exit__ methods to support the context manager
-        mock_response.__enter__ = lambda s: s
-        mock_response.__exit__ = Mock()
-
-        # Set the return value of the urlopen mock
-        mock_urlopen.return_value = mock_response
-
-        # Call the function under test
-        result = handler.get_history("123")
-
-        # Assertions
-        self.assertEqual(result, {"key": "value"})
-        mock_urlopen.assert_called_with("http://127.0.0.1:8188/history/123")
-
-    @patch("builtins.open", new_callable=mock_open, read_data=b"test")
-    def test_base64_encode(self, mock_file):
-        test_data = base64.b64encode(b"test").decode("utf-8")
-
-        result = handler.base64_encode("dummy_path")
-
-        self.assertEqual(result, test_data)
-
-    @patch("handler.os.path.exists")
-    @patch("handler.rp_upload.upload_image")
-    @patch.dict(
-        os.environ, {"FLUX_OUTPUT_PATH": RUNPOD_WORKER_FLUX_TEST_RESOURCES_IMAGES}
-    )
-    def test_bucket_endpoint_not_configured(self, mock_upload_image, mock_exists):
-        mock_exists.return_value = True
-        mock_upload_image.return_value = "simulated_uploaded/image.png"
-
-        outputs = {
-            "node_id": {"images": [{"filename": "Flux_00001_.png", "subfolder": ""}]}
+    def test_validate_generation_params_invalid_height(self):
+        """Test validation with invalid height."""
+        params = {
+            "width": 1024,
+            "height": 3000,  # Above maximum
+            "num_inference_steps": 50,
+            "guidance_scale": 3.5,
         }
-        job_id = "123"
+        is_valid, error_msg = handler.validate_generation_params(params)
+        self.assertFalse(is_valid)
+        self.assertIn("height", error_msg)
 
-        result = handler.process_output_images(outputs, job_id)
-
-        self.assertEqual(result["status"], "success")
-
-    @patch("handler.os.path.exists")
-    @patch("handler.rp_upload.upload_image")
-    @patch.dict(
-        os.environ,
-        {
-            "FLUX_OUTPUT_PATH": RUNPOD_WORKER_FLUX_TEST_RESOURCES_IMAGES,
-            "BUCKET_ENDPOINT_URL": "http://example.com",
-        },
-    )
-    def test_bucket_endpoint_configured(self, mock_upload_image, mock_exists):
-        # Mock the os.path.exists to return True, simulating that the image exists
-        mock_exists.return_value = True
-
-        # Mock the rp_upload.upload_image to return a simulated URL
-        mock_upload_image.return_value = "http://example.com/uploaded/image.png"
-
-        # Define the outputs and job_id for the test
-        outputs = {
-            "node_id": {
-                "images": [{"filename": "Flux_00001_.png", "subfolder": "test"}]
-            }
+    def test_validate_generation_params_invalid_steps(self):
+        """Test validation with invalid inference steps."""
+        params = {
+            "width": 1024,
+            "height": 1024,
+            "num_inference_steps": 5,  # Below minimum
+            "guidance_scale": 3.5,
         }
-        job_id = "123"
+        is_valid, error_msg = handler.validate_generation_params(params)
+        self.assertFalse(is_valid)
+        self.assertIn("num_inference_steps", error_msg)
 
-        # Call the function under test
-        result = handler.process_output_images(outputs, job_id)
-
-        # Assertions
-        self.assertEqual(result["status"], "success")
-        self.assertEqual(result["message"], "http://example.com/uploaded/image.png")
-        mock_upload_image.assert_called_once_with(
-            job_id, "./test_resources/images/test/Flux_00001_.png"
-        )
-
-    @patch("handler.os.path.exists")
-    @patch("handler.rp_upload.upload_image")
-    @patch.dict(
-        os.environ,
-        {
-            "FLUX_OUTPUT_PATH": RUNPOD_WORKER_FLUX_TEST_RESOURCES_IMAGES,
-            "BUCKET_ENDPOINT_URL": "http://example.com",
-            "BUCKET_ACCESS_KEY_ID": "",
-            "BUCKET_SECRET_ACCESS_KEY": "",
-        },
-    )
-    def test_bucket_image_upload_fails_env_vars_wrong_or_missing(
-        self, mock_upload_image, mock_exists
-    ):
-        # Simulate the file existing in the output path
-        mock_exists.return_value = True
-
-        # When AWS credentials are wrong or missing, upload_image should return 'simulated_uploaded/...'
-        mock_upload_image.return_value = "simulated_uploaded/image.png"
-
-        outputs = {
-            "node_id": {"images": [{"filename": "Flux_00001_.png", "subfolder": ""}]}
+    def test_validate_generation_params_invalid_guidance(self):
+        """Test validation with invalid guidance scale."""
+        params = {
+            "width": 1024,
+            "height": 1024,
+            "num_inference_steps": 50,
+            "guidance_scale": 15.0,  # Above maximum
         }
-        job_id = "123"
+        is_valid, error_msg = handler.validate_generation_params(params)
+        self.assertFalse(is_valid)
+        self.assertIn("guidance_scale", error_msg)
 
-        result = handler.process_output_images(outputs, job_id)
+    def test_build_cache_key_consistency(self):
+        """Test that cache key is consistent for same parameters."""
+        params1 = {
+            "prompt": "test prompt",
+            "width": 1024,
+            "height": 1024,
+            "num_inference_steps": 50,
+            "guidance_scale": 3.5,
+        }
+        params2 = {
+            "prompt": "test prompt",
+            "width": 1024,
+            "height": 1024,
+            "num_inference_steps": 50,
+            "guidance_scale": 3.5,
+        }
+        key1 = handler.build_cache_key(**params1)
+        key2 = handler.build_cache_key(**params2)
+        self.assertEqual(key1, key2)
 
-        # Check if the image was saved to the 'simulated_uploaded' directory
-        self.assertIn("simulated_uploaded", result["message"])
-        self.assertEqual(result["status"], "success")
+    def test_build_cache_key_uniqueness(self):
+        """Test that cache key differs for different parameters."""
+        params1 = {
+            "prompt": "test prompt",
+            "width": 1024,
+            "height": 1024,
+            "num_inference_steps": 50,
+            "guidance_scale": 3.5,
+        }
+        params2 = {
+            "prompt": "different prompt",
+            "width": 1024,
+            "height": 1024,
+            "num_inference_steps": 50,
+            "guidance_scale": 3.5,
+        }
+        key1 = handler.build_cache_key(**params1)
+        key2 = handler.build_cache_key(**params2)
+        self.assertNotEqual(key1, key2)
 
-    @patch("handler.requests.post")
-    def test_upload_images_successful(self, mock_post):
-        mock_response = unittest.mock.Mock()
-        mock_response.status_code = 200
-        mock_response.text = "Successfully uploaded"
-        mock_post.return_value = mock_response
+    def test_decode_cached_response_valid(self):
+        """Test decoding a valid cached response."""
+        response = {
+            "status": "success",
+            "image": "base64string",
+            "metadata": {},
+        }
+        raw_value = json.dumps(response)
+        decoded = handler.decode_cached_response(raw_value)
+        self.assertIsNotNone(decoded)
+        self.assertTrue(decoded["cached"])
+        self.assertEqual(decoded["status"], "success")
 
-        test_image_data = base64.b64encode(b"Test Image Data").decode("utf-8")
+    def test_decode_cached_response_invalid_json(self):
+        """Test decoding invalid JSON."""
+        decoded = handler.decode_cached_response("invalid json")
+        self.assertIsNone(decoded)
 
-        images = [{"name": "test_image.png", "image": test_image_data}]
+    def test_decode_cached_response_not_success(self):
+        """Test decoding a non-success response."""
+        response = {"status": "error", "error": "test error"}
+        raw_value = json.dumps(response)
+        decoded = handler.decode_cached_response(raw_value)
+        self.assertIsNone(decoded)
 
-        responses = handler.upload_images(images)
+    def test_handler_config_from_env(self):
+        """Test configuration loading from environment variables."""
+        test_env = {
+            "REDIS_URL": "redis://test:6379",
+            "CACHE_TTL_SECONDS": "3600",
+            "FLUX_MODEL_PATH": "/test/path/model.safetensors",
+        }
+        with patch.dict(os.environ, test_env, clear=True):
+            config = handler.HandlerConfig.from_env()
+            self.assertEqual(config.redis_url, "redis://test:6379")
+            self.assertEqual(config.cache_ttl_seconds, 3600)
+            self.assertEqual(config.model_path, "/test/path/model.safetensors")
 
-        self.assertEqual(len(responses), 3)
-        self.assertEqual(responses["status"], "success")
+    @patch("handler.redis.from_url")
+    def test_redis_connection_success(self, mock_redis):
+        """Test successful Redis connection."""
+        mock_client = MagicMock()
+        mock_client.ping.return_value = True
+        mock_redis.return_value = mock_client
+        
+        test_env = {"REDIS_URL": "redis://localhost:6379"}
+        with patch.dict(os.environ, test_env, clear=True):
+            handler.config = handler.HandlerConfig.from_env()
+            # Re-import to trigger connection
+            import importlib
+            importlib.reload(handler)
+            self.assertIsNotNone(handler.redis_client)
 
-    @patch("handler.requests.post")
-    def test_upload_images_failed(self, mock_post):
-        mock_response = unittest.mock.Mock()
-        mock_response.status_code = 400
-        mock_response.text = "Error uploading"
-        mock_post.return_value = mock_response
+    @patch("handler.redis.from_url")
+    def test_redis_connection_failure(self, mock_redis):
+        """Test Redis connection failure."""
+        mock_redis.side_effect = Exception("Connection failed")
+        
+        test_env = {"REDIS_URL": "redis://localhost:6379"}
+        with patch.dict(os.environ, test_env, clear=True):
+            handler.config = handler.HandlerConfig.from_env()
+            # Re-import to trigger connection
+            import importlib
+            importlib.reload(handler)
+            # Should handle gracefully and set redis_client to None
+            self.assertIsNone(handler.redis_client)
 
-        test_image_data = base64.b64encode(b"Test Image Data").decode("utf-8")
 
-        images = [{"name": "test_image.png", "image": test_image_data}]
-
-        responses = handler.upload_images(images)
-
-        self.assertEqual(len(responses), 3)
-        self.assertEqual(responses["status"], "error")
+if __name__ == "__main__":
+    unittest.main()
