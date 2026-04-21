@@ -13,22 +13,15 @@ fi
 TEST_DIR="$(mktemp -d)"
 trap 'rm -rf "${TEST_DIR}"' EXIT
 
-IMAGE_COMFY="${TEST_DIR}/image-comfy"
+IMAGE_MODELS="${TEST_DIR}/image-models"
 IMAGE_VENV="${TEST_DIR}/image-venv"
-IMAGE_APP="${TEST_DIR}/image-app"
-RUNTIME_COMFY="${TEST_DIR}/runtime-comfy"
+RUNTIME_MODELS="${TEST_DIR}/runtime-models"
 RUNTIME_VENV="${TEST_DIR}/runtime-venv"
 WORKSPACE_ROOT="${TEST_DIR}/workspace"
 EXTRA_MODEL_PATHS_FILE="${TEST_DIR}/extra_model_paths.yaml"
 
-mkdir -p "${IMAGE_COMFY}/models/checkpoints" "${IMAGE_VENV}/bin" "${IMAGE_APP}" "${RUNTIME_COMFY}" "${RUNTIME_VENV}"
-printf 'seeded comfy\n' > "${IMAGE_COMFY}/main.py"
+mkdir -p "${IMAGE_MODELS}" "${IMAGE_VENV}/bin" "${RUNTIME_MODELS}" "${RUNTIME_VENV}"
 printf 'seeded venv\n' > "${IMAGE_VENV}/bin/python"
-printf '{\"workflow\":\"seeded\"}\n' > "${IMAGE_APP}/video_ltx2_3_i2v_API.json"
-mkdir -p "${IMAGE_COMFY}/custom_nodes/comfyui-manager"
-mkdir -p "${IMAGE_COMFY}/custom_nodes/ComfyUI-Downloader"
-printf 'manager present\n' > "${IMAGE_COMFY}/custom_nodes/comfyui-manager/README.txt"
-printf 'downloader present\n' > "${IMAGE_COMFY}/custom_nodes/ComfyUI-Downloader/README.txt"
 
 run_persistent_bootstrap() {
     (
@@ -40,7 +33,6 @@ run_persistent_bootstrap() {
         export VENV_IMAGE_ROOT="${IMAGE_VENV}"
         export VENV_RUNTIME_ROOT="${RUNTIME_VENV}"
         export EXTRA_MODEL_PATHS_FILE="${EXTRA_MODEL_PATHS_FILE}"
-        export WORKFLOW_TEMPLATE_SOURCE_ROOT="${IMAGE_APP}"
 
         source "${SCRIPT_TO_TEST}"
         bootstrap_workspace
@@ -59,92 +51,36 @@ assert_file_contains() {
 
 run_persistent_bootstrap
 
-[ -L "${RUNTIME_COMFY}" ] || { echo "Expected ${RUNTIME_COMFY} to be a symlink"; exit 1; }
-[ -L "${RUNTIME_VENV}" ] || { echo "Expected ${RUNTIME_VENV} to be a symlink"; exit 1; }
-[ "$(readlink "${RUNTIME_COMFY}")" = "${WORKSPACE_ROOT}/worker-comfyui/comfyui" ] || { echo "Unexpected ComfyUI symlink target"; exit 1; }
-[ "$(readlink "${RUNTIME_VENV}")" = "${WORKSPACE_ROOT}/worker-comfyui/venv" ] || { echo "Unexpected venv symlink target"; exit 1; }
-
-assert_file_contains "${WORKSPACE_ROOT}/worker-comfyui/comfyui/main.py" "seeded comfy"
-assert_file_contains "${WORKSPACE_ROOT}/worker-comfyui/venv/bin/python" "seeded venv"
-assert_file_contains "${EXTRA_MODEL_PATHS_FILE}" "base_path: ${WORKSPACE_ROOT}"
-assert_file_contains "${WORKSPACE_ROOT}/worker-comfyui/comfyui/custom_nodes/comfyui-manager/README.txt" "manager present"
-assert_file_contains "${WORKSPACE_ROOT}/worker-comfyui/comfyui/custom_nodes/ComfyUI-Downloader/README.txt" "downloader present"
-assert_file_contains "${WORKSPACE_ROOT}/worker-comfyui/comfyui/user/default/workflows/video_ltx2_3_i2v_API.json" "\"workflow\":\"seeded\""
+[ -L "${RUNTIME_MODELS}" ] || { echo "Expected ${RUNTIME_MODELS} to be a symlink"; exit 1; }
+[ "$(readlink "${RUNTIME_MODELS}")" = "${WORKSPACE_ROOT}/models" ] || { echo "Unexpected models symlink target"; exit 1; }
+[ "$(readlink "${RUNTIME_VENV}")" = "${WORKSPACE_ROOT}/worker-venv/venv" ] || { echo "Unexpected venv symlink target"; exit 1; }
+assert_file_contains "${WORKSPACE_ROOT}/worker-venv/venv/bin/python" "seeded venv"
 
 for cache_dir in huggingface pip torch triton xdg; do
-    [ -d "${WORKSPACE_ROOT}/worker-comfyui/cache/${cache_dir}" ] || {
+    [ -d "${WORKSPACE_ROOT}/worker-venv/cache/${cache_dir}" ] || {
         echo "Missing cache directory ${cache_dir}"
         exit 1
     }
 done
 
-printf 'mutated comfy\n' > "${IMAGE_COMFY}/main.py"
 printf 'mutated venv\n' > "${IMAGE_VENV}/bin/python"
-printf 'manager updated\n' > "${IMAGE_COMFY}/custom_nodes/comfyui-manager/README.txt"
-printf 'downloader updated\n' > "${IMAGE_COMFY}/custom_nodes/ComfyUI-Downloader/README.txt"
-printf '{\"workflow\":\"updated\"}\n' > "${IMAGE_APP}/video_ltx2_3_i2v_API.json"
 
 run_persistent_bootstrap
 
-assert_file_contains "${WORKSPACE_ROOT}/worker-comfyui/comfyui/main.py" "seeded comfy"
-assert_file_contains "${WORKSPACE_ROOT}/worker-comfyui/venv/bin/python" "seeded venv"
-assert_file_contains "${WORKSPACE_ROOT}/worker-comfyui/comfyui/custom_nodes/comfyui-manager/README.txt" "manager updated"
-assert_file_contains "${WORKSPACE_ROOT}/worker-comfyui/comfyui/custom_nodes/ComfyUI-Downloader/README.txt" "downloader updated"
-assert_file_contains "${WORKSPACE_ROOT}/worker-comfyui/comfyui/user/default/workflows/video_ltx2_3_i2v_API.json" "\"workflow\":\"updated\""
+assert_file_contains "${WORKSPACE_ROOT}/worker-venv/venv/bin/python" "seeded venv"
 
-mkdir -p "${WORKSPACE_ROOT}/worker-comfyui/comfyui/custom_nodes/ComfyUI-Manager"
-printf 'legacy manager\n' > "${WORKSPACE_ROOT}/worker-comfyui/comfyui/custom_nodes/ComfyUI-Manager/README.txt"
-rm -rf "${WORKSPACE_ROOT}/worker-comfyui/comfyui/custom_nodes/comfyui-manager"
-rm -rf "${WORKSPACE_ROOT}/worker-comfyui/comfyui/custom_nodes/ComfyUI-Downloader"
+rm -f "${WORKSPACE_ROOT}/worker-venv/venv/.worker-seeded"
+mkdir -p "${WORKSPACE_ROOT}/worker-venv/venv/lib/python3.12/site-packages/einops"
+printf 'stale partial seed\n' > "${WORKSPACE_ROOT}/worker-venv/venv/lib/python3.12/site-packages/einops/__init__.py"
 run_persistent_bootstrap
-assert_file_contains "${WORKSPACE_ROOT}/worker-comfyui/comfyui/custom_nodes/comfyui-manager/README.txt" "manager updated"
-assert_file_contains "${WORKSPACE_ROOT}/worker-comfyui/comfyui/custom_nodes/ComfyUI-Downloader/README.txt" "downloader updated"
-LEGACY_MANAGER_PATH="${WORKSPACE_ROOT}/worker-comfyui/comfyui/custom_nodes/ComfyUI-Manager"
-NORMALIZED_MANAGER_PATH="${WORKSPACE_ROOT}/worker-comfyui/comfyui/custom_nodes/comfyui-manager"
-if [ -e "${LEGACY_MANAGER_PATH}" ] && [ -e "${NORMALIZED_MANAGER_PATH}" ]; then
-    LEGACY_MANAGER_INODE="$(ls -di "${LEGACY_MANAGER_PATH}" 2>/dev/null | awk '{print $1}' || true)"
-    NORMALIZED_MANAGER_INODE="$(ls -di "${NORMALIZED_MANAGER_PATH}" 2>/dev/null | awk '{print $1}' || true)"
-    if [ -n "${LEGACY_MANAGER_INODE}" ] && [ "${LEGACY_MANAGER_INODE}" != "${NORMALIZED_MANAGER_INODE}" ]; then
-        echo "Expected legacy ComfyUI-Manager path to be removed"
-        exit 1
-    fi
-fi
-
-rm -f "${WORKSPACE_ROOT}/worker-comfyui/venv/.worker-seeded"
-mkdir -p "${WORKSPACE_ROOT}/worker-comfyui/venv/lib/python3.12/site-packages/einops"
-printf 'stale partial seed\n' > "${WORKSPACE_ROOT}/worker-comfyui/venv/lib/python3.12/site-packages/einops/__init__.py"
-run_persistent_bootstrap
-assert_file_contains "${WORKSPACE_ROOT}/worker-comfyui/venv/bin/python" "mutated venv"
-[ ! -e "${WORKSPACE_ROOT}/worker-comfyui/venv/lib/python3.12/site-packages/einops/__init__.py" ] || {
+assert_file_contains "${WORKSPACE_ROOT}/worker-venv/venv/bin/python" "mutated venv"
+[ ! -e "${WORKSPACE_ROOT}/worker-venv/venv/lib/python3.12/site-packages/einops/__init__.py" ] || {
     echo "Expected stale partial venv contents to be removed"
     exit 1
 }
 
-LOCAL_RUNTIME_COMFY="${TEST_DIR}/local-comfy"
-LOCAL_EXTRA_MODEL_PATHS_FILE="${TEST_DIR}/local-extra_model_paths.yaml"
-mkdir -p "${LOCAL_RUNTIME_COMFY}/models"
-
-(
-    export PERSIST_WORKSPACE=true
-    export COMFY_RUNTIME_ROOT="${LOCAL_RUNTIME_COMFY}"
-    export EXTRA_MODEL_PATHS_FILE="${LOCAL_EXTRA_MODEL_PATHS_FILE}"
-
-    source "${SCRIPT_TO_TEST}"
-    detect_persistent_root() {
-        printf '%s\n' ""
-    }
-    bootstrap_workspace
-
-    [ "${COMFY_MODEL_ROOT}" = "${LOCAL_RUNTIME_COMFY}/models" ] || {
-        echo "Unexpected COMFY_MODEL_ROOT=${COMFY_MODEL_ROOT}"
-        exit 1
-    }
-)
-
-assert_file_contains "${LOCAL_EXTRA_MODEL_PATHS_FILE}" "base_path: ${LOCAL_RUNTIME_COMFY}"
-
-LOCK_DIR="${WORKSPACE_ROOT}/worker-comfyui/.bootstrap.lock"
-mkdir -p "${WORKSPACE_ROOT}/worker-comfyui"
+LOCK_DIR="${WORKSPACE_ROOT}/worker-venv/.bootstrap.lock"
+mkdir -p "${WORKSPACE_ROOT}/worker-venv"
 
 (
     source "${SCRIPT_TO_TEST}"

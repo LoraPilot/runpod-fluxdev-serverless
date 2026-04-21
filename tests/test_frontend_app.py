@@ -131,19 +131,6 @@ class TestFrontendApp(unittest.TestCase):
             body["response_json"]["output"]["videos"][0]["url"],
         )
 
-    def test_comfy_output_returns_file_response(self) -> None:
-        with tempfile.NamedTemporaryFile(suffix=".mp4") as tmp_file:
-            with patch.object(
-                frontend_app,
-                "build_output_path",
-                return_value=frontend_app.Path(tmp_file.name),
-            ):
-                response = self.client.get(
-                    "/api/comfy-output?filename=result.mp4&subfolder=&media_kind=video"
-                )
-
-        self.assertEqual(response.status_code, 200)
-
 
 if __name__ == "__main__":
     unittest.main()

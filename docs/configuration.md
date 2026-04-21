@@ -9,22 +9,17 @@ This document outlines the environment variables available for configuring the w
 | `REFRESH_WORKER`     | When `true`, the worker pod will stop after each completed job to ensure a clean state for the next job. See the [RunPod documentation](https://docs.runpod.io/docs/handler-additional-controls#refresh-worker) for details. | `false` |
 | `RUN_MODE` | Container startup mode: `worker`, `local-api`, or `pod`. | `worker` |
 | `SERVE_API_LOCALLY`  | Legacy compatibility flag. When `RUN_MODE` is unset and this is `true`, startup falls back to `local-api`. See the [Development Guide](development.md#local-api-simulation-using-docker-compose) for more details. | `false` |
-| `PERSIST_WORKSPACE`  | When `true`, persist ComfyUI, the Python venv, caches, and downloaded assets under `/workspace` (which aliases `/runpod-volume` on serverless).                                                                            | `true`  |
+| `PERSIST_WORKSPACE`  | When `true`, persist the Python venv, caches, and downloaded assets under `/workspace` (which aliases `/runpod-volume` on serverless).                                                                            | `true`  |
 | `WORKSPACE_ROOT`     | Override the detected persistent workspace root. Useful only if your mount layout differs from RunPod defaults.                                                                                                              | auto    |
-| `WORKSPACE_STATE_ROOT` | Override the state directory inside the persistent workspace.                                                                                                                         | `/workspace/worker-comfyui` |
+| `WORKSPACE_STATE_ROOT` | Override the state directory inside the persistent workspace.                                                                                                                         | `/workspace/worker-venv` |
 | `HUGGINGFACE_ACCESS_TOKEN` | Optional token used for startup downloads and other Hugging Face fetches. `HF_TOKEN` and `HUGGINGFACE_TOKEN` are also accepted aliases by the preload script.                 | –       |
-| `LTX23_PRELOAD_VARIANT` | Optional LTX checkpoint preload at worker startup: `distilled`, `dev`, `distilled-fp8`, or `dev-fp8`.                                                                     | empty   |
-| `LTX23_PRELOAD_UPSCALERS` | When `true`, also preload the official LTX latent upscalers and distilled LoRA for the two-stage path.                                                                  | `false` |
-| `LTX23_DOWNLOAD_BACKEND` | LTX preload download backend: `auto` (prefer `huggingface_hub` + `hf_transfer`), `hf_hub`, or `wget`.                                                                   | `auto`  |
-| `COMFYUI_MANAGER_CONFIG` | Override the ComfyUI-Manager `config.ini` path used by `comfy-manager-set-mode`. ComfyUI-Manager is installed in the image by default.                                      | `/comfyui/user/default/ComfyUI-Manager/config.ini` |
-| `INDRO_API_KEY` | Secret checked only by the legacy custom `input.prompt` + `input.image_url` handler path. Workflow-mode jobs do not use it. | `dev_token_123` |
 | `REDIS_URL` | Redis connection used for rate limiting, dedupe, job status, and circuit breaker state. | `redis://localhost:6379` |
 | `CACHE_TTL_SECONDS` | How long successful deduped responses stay cached in Redis. | `604800` |
 | `AWS_BUCKET_NAME` | Enable S3 upload mode for generated image and video outputs. | – |
 
 ## Bootstrap Locking
 
-When multiple workers share the same persisted `/workspace`, the bootstrap now uses a shared lock at `/workspace/worker-comfyui/.bootstrap.lock` while seeding the persisted ComfyUI root and Python virtualenv.
+When multiple workers share the same persisted `/workspace`, the bootstrap now uses a shared lock at `/workspace/worker-venv/.bootstrap.lock` while seeding the persisted Python virtualenv.
 
 That prevents concurrent first-boot workers from trampling the same shared venv. If a worker dies while holding the lock, stale-lock cleanup will eventually remove it.
 
