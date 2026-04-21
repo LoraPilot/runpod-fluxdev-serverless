@@ -3,7 +3,7 @@
 set -euo pipefail
 
 bootstrap_log() {
-    echo "worker-comfyui: $*"
+    echo "worker-flux: $*"
 }
 
 describe_directory_size() {
@@ -219,23 +219,10 @@ sync_directory_entries_if_missing() {
     done
 }
 
-custom_node_should_refresh() {
-    local entry_name="$1"
-
-    case "${refresh_list}" in
-        *,"${entry_name}",*)
-            return 0
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-}
 
 remove_legacy_manager_path_if_distinct() {
     local target_dir="$1"
     local legacy_dir="${target_dir}/ComfyUI-Manager"
-    local normalized_dir="${target_dir}/comfyui-manager"
     local legacy_inode=""
     local normalized_inode=""
 
@@ -272,7 +259,6 @@ sync_custom_nodes_from_image() {
 
         if custom_node_should_refresh "${entry_name}"; then
             bootstrap_log "Refreshing image-baked custom node ${entry_name} in persisted workspace"
-            if [ "${entry_name}" = "comfyui-manager" ]; then
                 remove_legacy_manager_path_if_distinct "${target_dir}"
             fi
             rm -rf "${target_dir}/${entry_name}"
@@ -396,6 +382,10 @@ bootstrap_workspace() {
     release_bootstrap_lock "${bootstrap_lock_dir}"
 
     replace_with_symlink "${venv_runtime_root}" "${venv_root}"
+
+    if [ -n "${models_image_root}" ] && [ -n "${models_runtime_root}" ]; then
+        replace_with_symlink "${models_runtime_root}" "${WORKSPACE_ROOT}/models"
+    fi
 
     export PATH="${venv_runtime_root}/bin:${PATH}"
     export HF_HOME="${cache_root}/huggingface"
