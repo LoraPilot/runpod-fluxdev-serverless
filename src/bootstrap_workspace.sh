@@ -221,7 +221,6 @@ sync_directory_entries_if_missing() {
 
 custom_node_should_refresh() {
     local entry_name="$1"
-    local refresh_list=",${COMFY_BOOTSTRAP_REFRESH_CUSTOM_NODES:-comfyui-manager,ComfyUI-Downloader},"
 
     case "${refresh_list}" in
         *,"${entry_name}",*)
@@ -315,12 +314,11 @@ sync_named_files_from_image() {
 
 write_extra_model_paths() {
     local base_path="$1"
-    local output_file="${2:-/comfyui/extra_model_paths.yaml}"
 
     mkdir -p "$(dirname "${output_file}")"
 
     cat > "${output_file}" <<EOF
-runpod_worker_comfy:
+bootstrap_workspace:
   base_path: ${base_path}
   checkpoints: models/checkpoints/
   clip: models/clip/
@@ -366,7 +364,7 @@ bootstrap_workspace() {
 
     export WORKSPACE_ROOT="${persistent_root}"
 
-    local state_root="${WORKSPACE_STATE_ROOT:-${WORKSPACE_ROOT}/worker-comfyui}"
+    local state_root="${WORKSPACE_STATE_ROOT:-${WORKSPACE_ROOT}/worker-venv}"
     local comfy_root="${state_root}/comfyui"
     local venv_root="${state_root}/venv"
     local cache_root="${state_root}/cache"
@@ -397,7 +395,6 @@ bootstrap_workspace() {
     trap - RETURN
     release_bootstrap_lock "${bootstrap_lock_dir}"
 
-    replace_with_symlink "${comfy_runtime_root}" "${comfy_root}"
     replace_with_symlink "${venv_runtime_root}" "${venv_root}"
 
     export PATH="${venv_runtime_root}/bin:${PATH}"

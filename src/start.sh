@@ -153,8 +153,6 @@ else
     echo "worker-flux: Skipping Redis bootstrap in pod mode"
 fi
 
-# Allow operators to tweak verbosity; default is DEBUG.
-: "${COMFY_LOG_LEVEL:=DEBUG}"
 
 
 start_frontend() {

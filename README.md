@@ -6,9 +6,6 @@ This repo turns FLUX.1-dev into a RunPod serverless template that keeps its brai
 
 Less boot drama. More actual inference.
 
-<p align="center">
-  <img src="assets/worker_sitting_in_comfy_chair.jpg" title="Worker sitting in comfy chair" />
-</p>
 
 ## Quickstart
 
