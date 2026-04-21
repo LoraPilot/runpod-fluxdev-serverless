@@ -6,7 +6,6 @@ This guide covers methods for adding your own models, custom nodes, and static i
 >
 > **Looking for the easiest way to deploy custom workflows?**
 >
-> [ComfyUI-to-API](https://comfy.getrunpod.io) automatically generates a custom Dockerfile and GitHub repository from your ComfyUI workflow, eliminating the manual setup described below. See the [ComfyUI-to-API Documentation](https://docs.runpod.io/community-solutions/comfyui-to-api/overview) for details.
 >
 > Use the manual methods below only if you need fine-grained control or prefer to manage everything yourself.
 
@@ -14,7 +13,7 @@ This guide covers methods for adding your own models, custom nodes, and static i
 
 There are two primary methods for **manual** customization:
 
-1.  **Custom Dockerfile (recommended for manual setup):** Create your own `Dockerfile` starting `FROM` one of this repository's base images. This allows you to bake specific custom nodes, models, and input files directly into your image using `comfy-cli` commands. **This method does not require forking the repository.**
+1.  **Custom Dockerfile (recommended for manual setup):** Create your own `Dockerfile` starting `FROM` one of this repository's base images. This allows you to bake specific models and dependencies directly into your image. **This method does not require forking the repository.**
 2.  **Network Volume:** Store models on a persistent network volume attached to your RunPod endpoint. This is useful if you frequently change models or have very large models you don't want to include in the image build process.
 
 ## Method 1: Custom Dockerfile
@@ -26,22 +25,15 @@ There are two primary methods for **manual** customization:
 This is the most flexible and recommended approach for creating reproducible, customized worker environments.
 
 1.  **Create a `Dockerfile`:** In your own project directory, create a file named `Dockerfile`.
-2.  **Start with a Base Image:** Begin your `Dockerfile` by referencing one of the official base images. Using the `-base` tag is recommended as it provides a clean ComfyUI install with necessary tools like `comfy-cli` but without pre-packaged models.
+2.  **Start with a Base Image:** Begin your `Dockerfile` by referencing one of the official base images. Using the `-base` tag is recommended as it provides a clean Python environment without pre-packaged models.
     ```Dockerfile
     # start from a clean base image (replace <version> with the desired release)
     FROM your-dockerhub-id/flux-dev-worker:<version>-base-cuda12.8.1
     ```
 3.  **Install Custom Nodes:** Use the `comfy-node-install` (we had introduce our own cli tool here, as there is a [problem with comfy-cli not showing errors during installation](https://github.com/Comfy-Org/comfy-cli/pull/275)) command to add custom nodes by their name or URL, see [Comfy Registry](https://registry.comfy.org) to find the correct name. You can list multiple nodes.
     ```Dockerfile
-    # install custom nodes using comfy-cli
-    RUN comfy-node-install comfyui-kjnodes comfyui-ic-light
     ```
 4.  **Download Models:** Use the `comfy model download` command to fetch models and place them in the correct ComfyUI directories.
-
-    ```Dockerfile
-    # download models using comfy-cli
-    RUN comfy model download --url https://huggingface.co/KamCastle/jugg/resolve/main/juggernaut_reborn.safetensors --relative-path models/checkpoints --filename juggernaut_reborn.safetensors
-    ```
 
 > [!NOTE]
 >

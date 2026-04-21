@@ -2,7 +2,7 @@
 
 This project provides a way to run [ComfyUI](https://github.com/comfyanonymous/ComfyUI) as a serverless API worker on the [RunPod](https://www.runpod.io/) platform, with the current repo focused on LTX 2.3 video inference rather than generic image-model packaging.
 
-It packages ComfyUI into Docker images, manages job handling via the `runpod` SDK, uses websockets for efficient communication with ComfyUI, and facilitates configuration through environment variables.
+It packages FluxPipeline from diffusers into Docker images, manages job handling via the `runpod` SDK, uses Redis for caching, and facilitates configuration through environment variables.
 
 ## Why This Exists
 
@@ -15,12 +15,12 @@ It packages ComfyUI into Docker images, manages job handling via the `runpod` SD
 
 ## Why It Wins
 
-LTX 2.3 is interesting. Rebuilding Comfy, reinstalling nodes, and redownloading weights on every serverless boot is not.
+FLUX.1-dev is interesting. Rebuilding the environment and redownloading weights on every serverless boot is not.
 
 This repo optimizes the boring part:
 - Keep the expensive state on `/workspace`
 - Use a sane CUDA matrix for newer Nvidia cards
-- Make RunPod serverless usable for LTX workflows without turning deployment into a ritual
+- Make RunPod serverless usable for FLUX text-to-image generation without turning deployment into a ritual
 
 # Project Conventions and Rules
 
@@ -50,15 +50,12 @@ This document outlines the key operational and structural conventions for the pr
 
 - **Primary Input Structure:** API calls to the `/run` or `/runsync` endpoints should use the workflow contract documented in the `README.md`. The primary key is `input`, containing `workflow` (mandatory object) and `images` (optional array).
 - **Image Encoding:** Input images provided in the `input.images` array must be base64 encoded strings (optionally including a `data:[<mediatype>];base64,` prefix).
-- **Workflow Format:** The `input.workflow` object should contain the JSON exported from ComfyUI using the "Save (API Format)" option (requires enabling "Dev mode Options" in ComfyUI settings).
 - **Output Structure:** Successful workflow responses can contain `output.images` and `output.videos`. Each entry includes `filename`, `type` (`"url"` or `"base64"`), `data`, and `media_type`.
 - **Legacy Compatibility:** The handler still accepts the older `input.prompt` + `input.image_url` request shape, but that is compatibility ballast. Do not build new integrations around it.
-- **Internal Communication:** The current handler polls ComfyUI `/history/{prompt_id}` over HTTP until outputs are ready.
 
 ## 4. Error Handling
 
 - **User-Friendly Errors:** Always surface meaningful error messages to users rather than generic HTTP errors or internal exceptions.
-- **ComfyUI Integration:** When ComfyUI returns validation errors, parse the response body to extract detailed error information and present it in a structured, actionable format.
 - **Helpful Context:** When possible, provide users with information about available options (e.g., available models, valid parameters) to help them correct their requests.
 - **Graceful Fallbacks:** Error handling should degrade gracefully - if detailed error parsing fails, fall back to showing the raw response rather than hiding the error entirely.
 
@@ -67,10 +64,9 @@ This document outlines the key operational and structural conventions for the pr
 - **Code Changes:** After modifying handler code, always rebuild the Docker image before testing with `docker-compose`:
   ```bash
   docker-compose down
-  docker build --target base -t ltx23-worker:dev .
+  docker build --target base -t flux-dev-worker:dev .
   docker-compose up -d
   ```
-- **Debugging:** Use strategic logging/print statements to understand external API responses (like ComfyUI's error formats) before implementing error handling.
 - **Testing:** Test error scenarios as thoroughly as success scenarios to ensure good user experience.
 
 ## 6. Testing
@@ -105,5 +101,4 @@ When extending the base image with custom nodes, some nodes may require specific
 
 ### **Known Compatibility Issues**
 
-- **ComfyUI-BrushNet dependency issue:** Requires specific dependency versions: `diffusers>=0.29.0`, `accelerate>=0.29.0,<0.32.0`, and `peft>=0.7.0` to resolve import errors
 - **Pattern for fixing:** When encountering import errors from custom nodes, check the dependency chain and ensure compatible versions are installed in the Dockerfile using `uv pip install`

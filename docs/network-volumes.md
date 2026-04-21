@@ -73,17 +73,13 @@ Models must be placed in the following structure on your network volume:
 
 ## Supported File Extensions
 
-| Model Type     | Supported Extensions                        |
-| -------------- | ------------------------------------------- |
-| Checkpoints    | `.safetensors`, `.ckpt`, `.pt`, `.pth`, `.bin` |
-| LoRAs          | `.safetensors`, `.pt`                       |
-| VAE            | `.safetensors`, `.pt`, `.bin`               |
-| CLIP           | `.safetensors`, `.pt`, `.bin`               |
-| ControlNet     | `.safetensors`, `.pt`, `.pth`, `.bin`       |
-| Embeddings     | `.safetensors`, `.pt`, `.bin`               |
-| Upscale Models | `.safetensors`, `.pt`, `.pth`               |
+| Model Type | Supported Extensions |
+| ---------- | ------------------- |
+| Diffusion models | `.safetensors`, `.bin` |
+| Text encoders | `.safetensors`, `.bin` |
+| VAE | `.safetensors`, `.bin` |
 
-Files with other extensions (for example `.txt`, `.zip`) are **ignored** by ComfyUI’s model discovery.
+Files with other extensions (for example `.txt`, `.zip`) are **ignored** by the model discovery.
 
 ## Common Issues
 
@@ -96,7 +92,7 @@ Files with other extensions (for example `.txt`, `.zip`) are **ignored** by Comf
 - **Volume not attached**
   - Endpoint created without selecting a network volume under **Advanced → Select Network Volume**.
 
-If any of the above is true, ComfyUI will silently fail to discover models from the network volume.
+If any of the above is true, the model discovery will fail.
 
 ## Debugging with `NETWORK_VOLUME_DEBUG`
 
@@ -106,7 +102,7 @@ The worker exposes an opt‑in debug mode controlled via the `NETWORK_VOLUME_DEB
 
 Enable this when:
 
-- Models on your network volume are not appearing in ComfyUI
+- Models on your network volume are not being detected
 - You suspect the directory structure or file extensions are wrong
 - You want to quickly verify what the worker can actually see on `/runpod-volume`
 
@@ -130,7 +126,6 @@ NETWORK VOLUME DIAGNOSTICS (NETWORK_VOLUME_DEBUG=true)
 ======================================================================
 
 [1] Checking extra_model_paths.yaml configuration...
-    ✓ FOUND: /comfyui/extra_model_paths.yaml
 
 [2] Checking network volume mount at /runpod-volume...
     ✓ MOUNTED: /runpod-volume

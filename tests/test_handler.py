@@ -13,7 +13,7 @@ from src import handler
 RUNPOD_WORKER_FLUX_TEST_RESOURCES_IMAGES = "./test_resources/images"
 
 
-class TestRunpodWorkerComfy(unittest.TestCase):
+class TestRunpodWorkerFlux(unittest.TestCase):
     def test_valid_input_with_workflow_only(self):
         input_data = {"workflow": {"key": "value"}}
         validated_data, error = handler.validate_input(input_data)
