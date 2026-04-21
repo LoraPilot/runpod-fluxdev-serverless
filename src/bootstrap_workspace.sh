@@ -240,52 +240,6 @@ sync_custom_nodes_from_image() {
     fi
 
     mkdir -p "${target_dir}"
-
-    for entry in "${source_dir}"/*; do
-        [ -e "${entry}" ] || continue
-        entry_name="$(basename "${entry}")"
-
-        if custom_node_should_refresh "${entry_name}"; then
-            bootstrap_log "Refreshing image-baked custom node ${entry_name} in persisted workspace"
-                remove_legacy_manager_path_if_distinct "${target_dir}"
-            fi
-            rm -rf "${target_dir}/${entry_name}"
-            cp -a "${entry}" "${target_dir}/${entry_name}"
-            continue
-        fi
-
-        if [ -e "${target_dir}/${entry_name}" ]; then
-            continue
-        fi
-
-        bootstrap_log "Syncing image-baked custom node ${entry_name} into persisted workspace"
-        cp -a "${entry}" "${target_dir}/${entry_name}"
-    done
-}
-
-sync_named_files_from_image() {
-    local source_dir="$1"
-    local target_dir="$2"
-    local file_list="$3"
-    local entry_name=""
-
-    [ -n "${file_list}" ] || return
-    [ -d "${source_dir}" ] || return
-
-    mkdir -p "${target_dir}"
-
-    IFS=',' read -r -a workflow_entries <<< "${file_list}"
-    for entry_name in "${workflow_entries[@]}"; do
-        entry_name="${entry_name#"${entry_name%%[![:space:]]*}"}"
-        entry_name="${entry_name%"${entry_name##*[![:space:]]}"}"
-        [ -n "${entry_name}" ] || continue
-        [ -f "${source_dir}/${entry_name}" ] || continue
-
-        bootstrap_log "Refreshing image-baked workflow ${entry_name} in persisted workspace"
-        cp -f "${source_dir}/${entry_name}" "${target_dir}/${entry_name}"
-    done
-}
-
 write_extra_model_paths() {
     local base_path="$1"
 

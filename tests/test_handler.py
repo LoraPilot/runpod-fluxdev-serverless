@@ -10,7 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "s
 from src import handler
 
 # Local folder for test resources
-RUNPOD_WORKER_COMFY_TEST_RESOURCES_IMAGES = "./test_resources/images"
+RUNPOD_WORKER_FLUX_TEST_RESOURCES_IMAGES = "./test_resources/images"
 
 
 class TestRunpodWorkerComfy(unittest.TestCase):
@@ -125,14 +125,14 @@ class TestRunpodWorkerComfy(unittest.TestCase):
     @patch("handler.os.path.exists")
     @patch("handler.rp_upload.upload_image")
     @patch.dict(
-        os.environ, {"COMFY_OUTPUT_PATH": RUNPOD_WORKER_COMFY_TEST_RESOURCES_IMAGES}
+        os.environ, {"FLUX_OUTPUT_PATH": RUNPOD_WORKER_FLUX_TEST_RESOURCES_IMAGES}
     )
     def test_bucket_endpoint_not_configured(self, mock_upload_image, mock_exists):
         mock_exists.return_value = True
         mock_upload_image.return_value = "simulated_uploaded/image.png"
 
         outputs = {
-            "node_id": {"images": [{"filename": "ComfyUI_00001_.png", "subfolder": ""}]}
+            "node_id": {"images": [{"filename": "Flux_00001_.png", "subfolder": ""}]}
         }
         job_id = "123"
 
@@ -145,7 +145,7 @@ class TestRunpodWorkerComfy(unittest.TestCase):
     @patch.dict(
         os.environ,
         {
-            "COMFY_OUTPUT_PATH": RUNPOD_WORKER_COMFY_TEST_RESOURCES_IMAGES,
+            "FLUX_OUTPUT_PATH": RUNPOD_WORKER_FLUX_TEST_RESOURCES_IMAGES,
             "BUCKET_ENDPOINT_URL": "http://example.com",
         },
     )
@@ -159,7 +159,7 @@ class TestRunpodWorkerComfy(unittest.TestCase):
         # Define the outputs and job_id for the test
         outputs = {
             "node_id": {
-                "images": [{"filename": "ComfyUI_00001_.png", "subfolder": "test"}]
+                "images": [{"filename": "Flux_00001_.png", "subfolder": "test"}]
             }
         }
         job_id = "123"
@@ -171,7 +171,7 @@ class TestRunpodWorkerComfy(unittest.TestCase):
         self.assertEqual(result["status"], "success")
         self.assertEqual(result["message"], "http://example.com/uploaded/image.png")
         mock_upload_image.assert_called_once_with(
-            job_id, "./test_resources/images/test/ComfyUI_00001_.png"
+            job_id, "./test_resources/images/test/Flux_00001_.png"
         )
 
     @patch("handler.os.path.exists")
@@ -179,7 +179,7 @@ class TestRunpodWorkerComfy(unittest.TestCase):
     @patch.dict(
         os.environ,
         {
-            "COMFY_OUTPUT_PATH": RUNPOD_WORKER_COMFY_TEST_RESOURCES_IMAGES,
+            "FLUX_OUTPUT_PATH": RUNPOD_WORKER_FLUX_TEST_RESOURCES_IMAGES,
             "BUCKET_ENDPOINT_URL": "http://example.com",
             "BUCKET_ACCESS_KEY_ID": "",
             "BUCKET_SECRET_ACCESS_KEY": "",
@@ -195,7 +195,7 @@ class TestRunpodWorkerComfy(unittest.TestCase):
         mock_upload_image.return_value = "simulated_uploaded/image.png"
 
         outputs = {
-            "node_id": {"images": [{"filename": "ComfyUI_00001_.png", "subfolder": ""}]}
+            "node_id": {"images": [{"filename": "Flux_00001_.png", "subfolder": ""}]}
         }
         job_id = "123"
 
