@@ -10,6 +10,4 @@
 - **No linter or formatter configured**: Follow PEP 8 by convention; there are no pre-commit hooks or CI lint checks.
 - **Network volume mount point**: Models on a network volume should be placed in `/workspace/models/` structure as defined in bootstrap_flux.sh. The volume is expected at `/runpod-volume`.
 
-
-- **ComfyUI-BrushNet**: Requires `diffusers>=0.29.0`, `accelerate>=0.29.0,<0.32.0`, and `peft>=0.7.0`. Without these exact ranges, you get silent import errors.
 - **General pattern**: When a custom node fails with import errors, check its dependency chain and pin versions in the Dockerfile with `uv pip install`.

@@ -220,18 +220,6 @@ sync_directory_entries_if_missing() {
 }
 
 
-remove_legacy_manager_path_if_distinct() {
-    local target_dir="$1"
-    local legacy_dir="${target_dir}/ComfyUI-Manager"
-    local legacy_inode=""
-    local normalized_inode=""
-
-    if [ ! -e "${legacy_dir}" ]; then
-        return
-    fi
-
-    legacy_inode="$(ls -di "${legacy_dir}" 2>/dev/null | awk '{print $1}' || true)"
-    normalized_inode="$(ls -di "${normalized_dir}" 2>/dev/null | awk '{print $1}' || true)"
 
     if [ -n "${normalized_inode}" ] && [ "${legacy_inode}" = "${normalized_inode}" ]; then
         return
@@ -343,19 +331,15 @@ bootstrap_workspace() {
     if [ -z "${persistent_root}" ]; then
         bootstrap_log "No persistent workspace mount detected; using image-local paths"
         export PATH="${venv_runtime_root}/bin:${PATH}"
-        export COMFY_MODEL_ROOT="${COMFY_MODEL_ROOT:-${comfy_runtime_root}/models}"
-        write_extra_model_paths "${comfy_runtime_root}" "${extra_model_paths_file}"
         return
     fi
 
     export WORKSPACE_ROOT="${persistent_root}"
 
     local state_root="${WORKSPACE_STATE_ROOT:-${WORKSPACE_ROOT}/worker-venv}"
-    local comfy_root="${state_root}/comfyui"
     local venv_root="${state_root}/venv"
     local cache_root="${state_root}/cache"
     local bootstrap_lock_dir="${state_root}/.bootstrap.lock"
-    workflow_target_dir="${comfy_root}/${workflow_target_dir_rel}"
 
     mkdir -p \
         "${state_root}" \
@@ -366,17 +350,9 @@ bootstrap_workspace() {
         "${cache_root}/triton" \
         "${cache_root}/xdg"
 
-    acquire_bootstrap_lock "${bootstrap_lock_dir}"
     trap 'release_bootstrap_lock "'"${bootstrap_lock_dir}"'"' RETURN
 
-    seed_directory_if_missing "${comfy_image_root}" "${comfy_root}" "ComfyUI root"
     seed_directory_if_missing "${venv_image_root}" "${venv_root}" "Python virtualenv"
-    sync_custom_nodes_from_image \
-        "${comfy_image_root}/custom_nodes" \
-        "${comfy_root}/custom_nodes"
-    sync_named_files_from_image \
-        "${workflow_template_source_root}" \
-        "${workflow_target_dir}" \
 
     trap - RETURN
     release_bootstrap_lock "${bootstrap_lock_dir}"
