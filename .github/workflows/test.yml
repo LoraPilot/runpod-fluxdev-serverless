@@ -28,7 +28,6 @@ jobs:
         run: |
           bash tests/test_restore_snapshot.sh
           bash tests/test_bootstrap_workspace.sh
-          bash tests/test_bootstrap_ltx23.sh
 
       - name: Validate JSON files
         run: |
@@ -48,5 +47,5 @@ jobs:
       - name: Validate Docker bake targets
         run: |
           docker buildx bake --print base >/dev/null
-          docker buildx bake --print ltx2-3-distilled >/dev/null
-          docker buildx bake --print ltx2-3-distilled-cuda13 >/dev/null
+          docker buildx bake --print flux-dev >/dev/null
+          docker buildx bake --print flux-dev-cuda13 >/dev/null

@@ -20,9 +20,8 @@ jobs:
           - base
           - base-cuda12-8-1
           - base-cuda13-0
-          - ltx2-3-distilled
-          - ltx2-3-distilled-fp8
-          - ltx2-3-distilled-cuda13
+          - flux-dev
+          - flux-dev-cuda13
 
     steps:
       - name: Checkout

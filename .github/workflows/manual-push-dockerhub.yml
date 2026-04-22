@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       target_to_build:
-        description: "The specific bake target to build (for example base, base-cuda12-8-1, ltx2-3-distilled, or ltx2-3-distilled-cuda13)"
+        description: "The specific bake target to build (for example base, base-cuda12-8-1, flux-dev, or flux-dev-cuda13)"
         required: true
         type: string
 

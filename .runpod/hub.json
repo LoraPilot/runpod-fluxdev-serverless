@@ -1,6 +1,6 @@
 {
-  "title": "LTX 2.3 ComfyUI Worker",
-  "description": "Run LTX 2.3 video inference on ComfyUI with persistent /workspace state",
+  "title": "FLUX.1-dev Serverless Worker",
+  "description": "Run FLUX.1-dev text-to-image generation with persistent /workspace state",
   "type": "serverless",
   "category": "image",
   "iconUrl": "https://cpjrphpz3t5wbwfe.public.blob.vercel-storage.com/comfy-ui.png",
@@ -12,12 +12,12 @@
     "allowedCudaVersions": ["13.0", "12.8", "12.7", "12.6"],
     "env": [
       {
-        "key": "LTX23_PRELOAD_VARIANT",
+        "key": "FLUX_DEV_PRELOAD",
         "input": {
-          "name": "LTX 2.3 Checkpoint",
-          "type": "string",
-          "description": "Optional startup preload: distilled, dev, distilled-fp8, or dev-fp8",
-          "default": "distilled",
+          "name": "FLUX.1-dev Preload",
+          "type": "boolean",
+          "description": "Preload FLUX.1-dev model into persistent storage on startup",
+          "default": true,
           "advanced": false
         }
       },
@@ -26,19 +26,9 @@
         "input": {
           "name": "Persist /workspace",
           "type": "boolean",
-          "description": "Store ComfyUI, venv, caches, and downloaded assets on the attached network volume",
+          "description": "Store Python venv, caches, and downloaded assets on the attached network volume",
           "default": true,
           "advanced": false
-        }
-      },
-      {
-        "key": "LTX23_PRELOAD_UPSCALERS",
-        "input": {
-          "name": "Preload Upscalers",
-          "type": "boolean",
-          "description": "Also preload the official LTX spatial and temporal upscalers into persistent storage",
-          "default": false,
-          "advanced": true
         }
       },
       {

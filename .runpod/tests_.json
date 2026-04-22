@@ -9,8 +9,8 @@
         "value": "false"
       },
       {
-        "key": "LTX23_PRELOAD_VARIANT",
-        "value": "distilled"
+        "key": "FLUX_DEV_PRELOAD",
+        "value": "true"
       },
       {
         "key": "PERSIST_WORKSPACE",
