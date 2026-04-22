@@ -55,18 +55,10 @@ RUN python -m venv /opt/venv
 ENV VIRTUAL_ENV="/opt/venv"
 ENV PATH="/opt/venv/bin:${PATH}"
 
-# Install comfy-cli + base Python tooling used by the image.
+# Install base Python tooling used by the image.
 RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     python -m pip install --upgrade pip setuptools wheel \
-    && python -m pip install comfy-cli triton
-
-# Install ComfyUI
-RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
-    if [ -n "${CUDA_VERSION_FOR_COMFY}" ]; then \
-      /usr/bin/yes | comfy --workspace /comfyui install --version "${COMFYUI_VERSION}" --cuda-version "${CUDA_VERSION_FOR_COMFY}" --nvidia; \
-    else \
-      /usr/bin/yes | comfy --workspace /comfyui install --version "${COMFYUI_VERSION}" --nvidia; \
-    fi
+    && python -m pip install triton
 
 # Upgrade PyTorch if needed (for newer CUDA versions)
 RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
@@ -105,42 +97,7 @@ RUN chmod +x /start.sh
 RUN chmod +x /bootstrap_workspace.sh
 RUN chmod +x /bootstrap_flux.sh
 
-# Add script to install custom nodes
-COPY scripts/comfy-node-install.sh /usr/local/bin/comfy-node-install
-RUN chmod +x /usr/local/bin/comfy-node-install
-
-# Install ComfyUI-Manager by default so the runtime config line is not fiction.
-RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
-    if [ "${INSTALL_COMFYUI_MANAGER}" = "true" ]; then \
-      if [ -n "${COMFYUI_MANAGER_REF}" ]; then \
-        git clone --depth=1 --branch "${COMFYUI_MANAGER_REF}" https://github.com/Comfy-Org/ComfyUI-Manager.git /comfyui/custom_nodes/comfyui-manager; \
-      else \
-        git clone --depth=1 https://github.com/Comfy-Org/ComfyUI-Manager.git /comfyui/custom_nodes/comfyui-manager; \
-      fi && \
-      if [ -f /comfyui/custom_nodes/comfyui-manager/requirements.txt ]; then \
-        python -m pip install -r /comfyui/custom_nodes/comfyui-manager/requirements.txt; \
-      fi; \
-    fi
-
-# Prevent pip from asking for confirmation during uninstall steps in custom nodes
-ENV PIP_NO_INPUT=1
-
-# Copy helper script to switch Manager network mode at container start
-COPY scripts/comfy-manager-set-mode.sh /usr/local/bin/comfy-manager-set-mode
-RUN chmod +x /usr/local/bin/comfy-manager-set-mode
-
-# Install ComfyUI-Downloader by default for in-app model downloads.
-RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
-    if [ "${INSTALL_COMFYUI_DOWNLOADER}" = "true" ]; then \
-      if [ -n "${COMFYUI_DOWNLOADER_REF}" ]; then \
-        git clone --depth=1 --branch "${COMFYUI_DOWNLOADER_REF}" https://github.com/romandev-codex/ComfyUI-Downloader.git /comfyui/custom_nodes/ComfyUI-Downloader; \
-      else \
-        git clone --depth=1 https://github.com/romandev-codex/ComfyUI-Downloader.git /comfyui/custom_nodes/ComfyUI-Downloader; \
-      fi && \
-      if [ -f /comfyui/custom_nodes/ComfyUI-Downloader/requirements.txt ]; then \
-        python -m pip install -r /comfyui/custom_nodes/ComfyUI-Downloader/requirements.txt; \
-      fi; \
-    fi
+# Flux implementation - no ComfyUI components needed
 
 ENV FLUX_DEV_PRELOAD="${FLUX_DEV_PRELOAD}"
 
