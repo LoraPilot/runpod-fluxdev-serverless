@@ -13,6 +13,7 @@ ARG PYTORCH_PACKAGES="torch torchvision torchaudio"
 ARG EXTRA_PYTHON_PACKAGES=""
 ARG EXTRA_PYTHON_INDEX_URL=""
 ARG FLUX_DEV_PRELOAD=""
+ARG HUGGINGFACE_ACCESS_TOKEN=""
 
 # Prevents prompts from packages asking for user input during installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -74,6 +75,66 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
         python -m pip install ${EXTRA_PYTHON_PACKAGES}; \
       fi; \
     fi
+
+# Download FLUX.1-dev model and components during build
+RUN --mount=type=cache,target=/root/.cache/huggingface,sharing=locked \
+    mkdir -p /workspace/models/diffusion_models /workspace/models/text_encoders /workspace/models/vae && \
+    if [ -n "${HUGGINGFACE_ACCESS_TOKEN}" ]; then \
+      export HF_TOKEN="${HUGGINGFACE_ACCESS_TOKEN}"; \
+    fi && \
+    python -c "
+from huggingface_hub import hf_hub_download
+from pathlib import Path
+import os
+
+# Download Flux Dev model
+diffusion_dir = Path('/workspace/models/diffusion_models')
+diffusion_dir.mkdir(parents=True, exist_ok=True)
+hf_hub_download(
+    repo_id='black-forest-labs/FLUX.1-dev',
+    filename='flux1-dev.safetensors',
+    revision='main',
+    token=os.environ.get('HF_TOKEN'),
+    local_dir=str(diffusion_dir),
+    local_dir_use_symlinks=False,
+)
+
+# Download T5 text encoder
+text_encoder_dir = Path('/workspace/models/text_encoders')
+text_encoder_dir.mkdir(parents=True, exist_ok=True)
+hf_hub_download(
+    repo_id='comfyanonymous/flux_text_encoders',
+    filename='t5xxl_fp16.safetensors',
+    revision='main',
+    token=os.environ.get('HF_TOKEN'),
+    local_dir=str(text_encoder_dir),
+    local_dir_use_symlinks=False,
+)
+
+# Download CLIP-L text encoder
+hf_hub_download(
+    repo_id='comfyanonymous/flux_text_encoders',
+    filename='clip_l.safetensors',
+    revision='main',
+    token=os.environ.get('HF_TOKEN'),
+    local_dir=str(text_encoder_dir),
+    local_dir_use_symlinks=False,
+)
+
+# Download VAE
+vae_dir = Path('/workspace/models/vae')
+vae_dir.mkdir(parents=True, exist_ok=True)
+hf_hub_download(
+    repo_id='Comfy-Org/Lumina_Image_2.0_Repackaged',
+    filename='split_files/vae/ae.safetensors',
+    revision='main',
+    token=os.environ.get('HF_TOKEN'),
+    local_dir=str(vae_dir),
+    local_dir_use_symlinks=False,
+)
+
+print('FLUX.1-dev model download completed successfully.')
+"
 
 # Add application code and scripts
 ADD src/start.sh src/bootstrap_workspace.sh src/bootstrap_flux.sh handler.py frontend_app.py test_input.json ./

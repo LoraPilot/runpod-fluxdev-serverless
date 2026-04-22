@@ -169,6 +169,12 @@ bootstrap_flux() {
     local download_errors=0
     token="$(flux_hf_token)"
 
+    # Check if models are already baked into the image
+    if [ -f "${diffusion_dir}/flux1-dev.safetensors" ]; then
+        flux_log "FLUX.1-dev model already present in image, skipping download"
+        return
+    fi
+
     if [ "${preload}" != "true" ]; then
         flux_log "FLUX_DEV_PRELOAD is not set to true, skipping model download"
         return
