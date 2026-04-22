@@ -162,16 +162,14 @@ PY
 bootstrap_flux() {
     local preload="${FLUX_DEV_PRELOAD:-false}"
     local model_root="${FLUX_MODEL_ROOT:-/workspace/models}"
-    local diffusion_dir="${model_root}/diffusion_models"
-    local text_encoder_dir="${model_root}/text_encoders"
-    local vae_dir="${model_root}/vae"
     local token
     local download_errors=0
     token="$(flux_hf_token)"
 
-    # Check if models are already baked into the image
-    if [ -f "${diffusion_dir}/flux1-dev.safetensors" ]; then
-        flux_log "FLUX.1-dev model already present in image, skipping download"
+    # Check if diffusers format model is already baked into the image
+    # Diffusers format has model_index.json or config.json in the model directory
+    if [ -f "${model_root}/model_index.json" ] || [ -f "${model_root}/config.json" ]; then
+        flux_log "FLUX.1-dev model already present in diffusers format, skipping download"
         return
     fi
 
@@ -183,44 +181,27 @@ bootstrap_flux() {
     flux_log "Starting Flux model preload..."
     flux_log "Model root: ${model_root}"
 
-    # Download Flux Dev model
-    if ! flux_download \
-        "https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/flux1-dev.safetensors" \
-        "${diffusion_dir}/flux1-dev.safetensors" \
-        "${token}"; then
-        download_errors=$((download_errors + 1))
-        flux_log "Failed to download Flux Dev model"
-    fi
+    # Download FLUX.1-dev in diffusers format
+    flux_log "Downloading FLUX.1-dev in diffusers format..."
+    python -c "
+from diffusers import FluxPipeline
+import os
 
-    # Download T5 text encoder (fp16 recommended for >32GB RAM, fp8 for lower memory)
-    if ! flux_download \
-        "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors" \
-        "${text_encoder_dir}/t5xxl_fp16.safetensors" \
-        "${token}"; then
-        download_errors=$((download_errors + 1))
-        flux_log "Failed to download T5 text encoder"
-    fi
+token = os.environ.get('HF_TOKEN')
+if token:
+    os.environ['HF_TOKEN'] = token
 
-    # Download CLIP-L text encoder
-    if ! flux_download \
-        "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors" \
-        "${text_encoder_dir}/clip_l.safetensors" \
-        "${token}"; then
-        download_errors=$((download_errors + 1))
-        flux_log "Failed to download CLIP-L text encoder"
-    fi
+pipeline = FluxPipeline.from_pretrained(
+    'black-forest-labs/FLUX.1-dev',
+    torch_dtype='float32',
+    token=token
+)
+pipeline.save_pretrained('${model_root}')
+print('FLUX.1-dev model download completed successfully.')
+"
 
-    # Download VAE
-    if ! flux_download \
-        "https://huggingface.co/Comfy-Org/Lumina_Image_2.0_Repackaged/resolve/main/split_files/vae/ae.safetensors" \
-        "${vae_dir}/ae.safetensors" \
-        "${token}"; then
-        download_errors=$((download_errors + 1))
-        flux_log "Failed to download VAE"
-    fi
-
-    if [ $download_errors -gt 0 ]; then
-        flux_log "Flux model preload completed with $download_errors error(s)"
+    if [ $? -ne 0 ]; then
+        flux_log "Failed to download FLUX.1-dev model"
         return 1
     fi
 

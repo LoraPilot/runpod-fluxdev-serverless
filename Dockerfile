@@ -76,63 +76,27 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
       fi; \
     fi
 
-# Download FLUX.1-dev model and components during build
+# Download FLUX.1-dev model in diffusers format during build
 RUN --mount=type=cache,target=/root/.cache/huggingface,sharing=locked \
-    mkdir -p /workspace/models/diffusion_models /workspace/models/text_encoders /workspace/models/vae && \
+    mkdir -p /workspace/models && \
     if [ -n "${HUGGINGFACE_ACCESS_TOKEN}" ]; then \
       export HF_TOKEN="${HUGGINGFACE_ACCESS_TOKEN}"; \
     fi && \
     python -c "
-from huggingface_hub import hf_hub_download
+from diffusers import FluxPipeline
 from pathlib import Path
 import os
 
-# Download Flux Dev model
-diffusion_dir = Path('/workspace/models/diffusion_models')
-diffusion_dir.mkdir(parents=True, exist_ok=True)
-hf_hub_download(
-    repo_id='black-forest-labs/FLUX.1-dev',
-    filename='flux1-dev.safetensors',
-    revision='main',
-    token=os.environ.get('HF_TOKEN'),
-    local_dir=str(diffusion_dir),
-    local_dir_use_symlinks=False,
-)
+model_dir = Path('/workspace/models')
+model_dir.mkdir(parents=True, exist_ok=True)
 
-# Download T5 text encoder
-text_encoder_dir = Path('/workspace/models/text_encoders')
-text_encoder_dir.mkdir(parents=True, exist_ok=True)
-hf_hub_download(
-    repo_id='comfyanonymous/flux_text_encoders',
-    filename='t5xxl_fp16.safetensors',
-    revision='main',
-    token=os.environ.get('HF_TOKEN'),
-    local_dir=str(text_encoder_dir),
-    local_dir_use_symlinks=False,
+print('Downloading FLUX.1-dev in diffusers format...')
+pipeline = FluxPipeline.from_pretrained(
+    'black-forest-labs/FLUX.1-dev',
+    torch_dtype='float32',
+    token=os.environ.get('HF_TOKEN')
 )
-
-# Download CLIP-L text encoder
-hf_hub_download(
-    repo_id='comfyanonymous/flux_text_encoders',
-    filename='clip_l.safetensors',
-    revision='main',
-    token=os.environ.get('HF_TOKEN'),
-    local_dir=str(text_encoder_dir),
-    local_dir_use_symlinks=False,
-)
-
-# Download VAE
-vae_dir = Path('/workspace/models/vae')
-vae_dir.mkdir(parents=True, exist_ok=True)
-hf_hub_download(
-    repo_id='Comfy-Org/Lumina_Image_2.0_Repackaged',
-    filename='split_files/vae/ae.safetensors',
-    revision='main',
-    token=os.environ.get('HF_TOKEN'),
-    local_dir=str(vae_dir),
-    local_dir_use_symlinks=False,
-)
-
+pipeline.save_pretrained(str(model_dir))
 print('FLUX.1-dev model download completed successfully.')
 "
 
