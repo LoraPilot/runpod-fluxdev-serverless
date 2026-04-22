@@ -41,3 +41,6 @@ Thumbs.db
 
 # Local planning docs
 docs/planning/004_refactor_plan.local.md
+tmp/pdfs/case_study-1.png
+.gitignore
+tmp/pdfs/case_study-2.png
