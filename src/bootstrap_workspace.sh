@@ -221,6 +221,7 @@ sync_directory_entries_if_missing() {
 
 write_extra_model_paths() {
     local base_path="$1"
+    local output_file="${EXTRA_MODEL_PATHS_FILE:-/opt/venv/extra_model_paths.yaml}"
 
     mkdir -p "$(dirname "${output_file}")"
 
@@ -248,8 +249,10 @@ bootstrap_workspace() {
     local venv_runtime_root="${VENV_RUNTIME_ROOT:-/opt/venv}"
     local extra_model_paths_file="${EXTRA_MODEL_PATHS_FILE:-${venv_runtime_root}/extra_model_paths.yaml}"
     local workflow_template_source_root="${WORKFLOW_TEMPLATE_SOURCE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-    local workflow_target_dir_rel="${workflow_target_dir:-user/default/workflows}"
+    local workflow_target_dir_rel="${WORKFLOW_TARGET_DIR:-user/default/workflows}"
     local workflow_target_dir=""
+    local models_image_root="${MODELS_IMAGE_ROOT:-}"
+    local models_runtime_root="${MODELS_RUNTIME_ROOT:-}"
 
     if [ "${PERSIST_WORKSPACE:-true}" != "true" ]; then
         bootstrap_log "Workspace persistence disabled"
