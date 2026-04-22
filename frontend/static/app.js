@@ -1,43 +1,21 @@
 const state = {
-  aspectRatio: "16:9",
-  fps: 24,
-  file: null,
-  filePreviewUrl: "",
+  aspectRatio: "1:1",
   payload: null,
   payloadJson: "",
-  runMode: "worker",
-  submissionMode: "endpoint",
-};
-
-const ratioDimensions = {
-  "16:9": { width: 1280, height: 720 },
-  "9:16": { width: 720, height: 1280 },
-  "1:1": { width: 1024, height: 1024 },
 };
 
 const form = document.querySelector("#payload-form");
 const promptField = document.querySelector("#prompt");
-const optimizeField = document.querySelector("#optimize-prompt");
-const secondsField = document.querySelector("#seconds");
-const secondsValue = document.querySelector("#seconds-value");
-const secondsMinLabel = document.querySelector("#seconds-min-label");
-const secondsDefaultLabel = document.querySelector("#seconds-default-label");
-const secondsMaxLabel = document.querySelector("#seconds-max-label");
-const framesValue = document.querySelector("#frames-value");
-const fpsValue = document.querySelector("#fps-value");
+const widthField = document.querySelector("#width");
+const heightField = document.querySelector("#height");
+const numInferenceStepsField = document.querySelector("#num-inference-steps");
+const guidanceScaleField = document.querySelector("#guidance-scale");
+const seedField = document.querySelector("#seed");
+const stepsValue = document.querySelector("#steps-value");
+const guidanceValue = document.querySelector("#guidance-value");
 const resolutionValue = document.querySelector("#resolution-value");
 const charCount = document.querySelector("#char-count");
 const feedback = document.querySelector("#feedback");
-const uploadPanel = document.querySelector("#upload-panel");
-const uploadIcon = document.querySelector("#upload-icon");
-const uploadTitle = document.querySelector("#upload-title");
-const uploadCopy = document.querySelector("#upload-copy");
-const sourceImageInput = document.querySelector("#source-image");
-const filePill = document.querySelector("#file-pill");
-const fileName = document.querySelector("#file-name");
-const imagePreviewCard = document.querySelector("#image-preview-card");
-const imagePreview = document.querySelector("#image-preview");
-const previewName = document.querySelector("#preview-name");
 const payloadPanel = document.querySelector("#payload-panel");
 const payloadOutput = document.querySelector("#payload-output");
 const payloadSummary = document.querySelector("#payload-summary");
@@ -56,13 +34,16 @@ const responseSummary = document.querySelector("#response-summary");
 const responseStatus = document.querySelector("#response-status");
 const responseMedia = document.querySelector("#response-media");
 const responseOutput = document.querySelector("#response-output");
+const generatedImage = document.querySelector("#generated-image");
 const aspectButtons = document.querySelectorAll("[data-aspect-ratio]");
-const POD_STATUS_POLL_INTERVAL_MS = 2000;
-const POD_STATUS_POLL_TIMEOUT_MS = 15 * 60 * 1000;
 
-function secondsToFrames(seconds) {
-  return Math.round(seconds * state.fps) + 1;
-}
+const aspectDimensions = {
+  "1:1": { width: 1024, height: 1024 },
+  "16:9": { width: 1344, height: 768 },
+  "9:16": { width: 768, height: 1344 },
+  "4:3": { width: 1152, height: 896 },
+  "3:4": { width: 896, height: 1152 },
+};
 
 function setFeedback(message, type = "") {
   feedback.textContent = message;
@@ -73,16 +54,8 @@ function updatePromptCounter() {
   charCount.textContent = String(promptField.value.length);
 }
 
-function formatSecondsLabel(seconds) {
-  return `${Number(seconds).toString()}s`;
-}
-
-function updateDurationSummary() {
-  const seconds = Number.parseFloat(secondsField.value);
-  const dimensions = ratioDimensions[state.aspectRatio];
-  secondsValue.textContent = seconds.toFixed(1);
-  framesValue.textContent = String(secondsToFrames(seconds));
-  fpsValue.textContent = String(state.fps);
+function updateResolutionDisplay() {
+  const dimensions = aspectDimensions[state.aspectRatio];
   resolutionValue.textContent = `${dimensions.width} × ${dimensions.height}`;
 }
 
@@ -94,93 +67,13 @@ function updateAspectButtons() {
   });
 }
 
-function updateSubmitModeUi() {
-  if (state.submissionMode === "pod") {
-    endpointPanel.hidden = true;
-    endpointUrlField.disabled = true;
-    authTokenField.disabled = true;
-    generateButton.hidden = true;
-    generateButton.disabled = true;
-    generateButton.type = "button";
-    payloadPanel.hidden = true;
-    helperCopy.hidden = true;
-    submitButton.textContent = "Generate Video";
-    submitButton.classList.remove("secondary-hero-action");
-    submitButton.classList.add("primary-action");
-    submitModeTitle.textContent = "Local pod";
-    submitModeCopy.textContent =
-      "The frontend queues the workflow into the local ComfyUI pod and then polls for completion.";
-    return;
-  }
-
-  endpointPanel.hidden = false;
-  endpointUrlField.disabled = false;
-  authTokenField.disabled = false;
-  generateButton.hidden = false;
-  generateButton.disabled = false;
-  generateButton.type = "submit";
-  helperCopy.hidden = false;
-  submitModeTitle.textContent = "Real endpoint";
-  submitModeCopy.innerHTML =
-    'Full POST URL, for example <code>https://api.runpod.ai/v2/&lt;endpoint_id&gt;/runsync</code>';
-  submitButton.textContent = "Submit to Endpoint";
-  submitButton.classList.remove("primary-action");
-  submitButton.classList.add("secondary-hero-action");
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
-}
-
-function setFile(file) {
-  if (state.filePreviewUrl) {
-    URL.revokeObjectURL(state.filePreviewUrl);
-    state.filePreviewUrl = "";
-  }
-
-  state.file = file;
-  if (!file) {
-    filePill.hidden = true;
-    fileName.textContent = "";
-    imagePreviewCard.hidden = true;
-    imagePreview.removeAttribute("src");
-    previewName.textContent = "";
-    uploadIcon.hidden = false;
-    uploadTitle.hidden = false;
-    uploadCopy.hidden = false;
-    uploadPanel.classList.remove("has-preview");
-    return;
-  }
-
-  fileName.textContent = file.name;
-  state.filePreviewUrl = URL.createObjectURL(file);
-  imagePreview.src = state.filePreviewUrl;
-  previewName.textContent = file.name;
-  imagePreviewCard.hidden = false;
-  uploadIcon.hidden = true;
-  uploadTitle.hidden = true;
-  uploadCopy.hidden = true;
-  uploadPanel.classList.add("has-preview");
-  filePill.hidden = true;
-}
-
-function readFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error("Failed to read the source image."));
-    reader.readAsDataURL(file);
-  });
-}
-
 function renderSummary(summary) {
   const chips = [
-    `${summary.frames} frames`,
-    `${summary.seconds.toFixed(1)}s`,
     `${summary.width} × ${summary.height}`,
     `${summary.aspect_ratio}`,
-    `${summary.fps} fps`,
-    summary.optimize_prompt ? "AI prompt on" : "AI prompt off",
+    `${summary.num_inference_steps} steps`,
+    `guidance: ${summary.guidance_scale}`,
+    summary.seed ? `seed: ${summary.seed}` : "seed: random",
   ];
 
   payloadSummary.innerHTML = "";
@@ -219,7 +112,7 @@ function renderResponse(result) {
   const chips = [
     result.ok ? `HTTP ${result.status_code} ok` : `HTTP ${result.status_code}`,
     result.content_type,
-    result.endpoint_url || "local ComfyUI",
+    result.endpoint_url || "local API",
   ];
 
   responseSummary.innerHTML = "";
@@ -230,132 +123,15 @@ function renderResponse(result) {
     responseSummary.appendChild(chip);
   });
 
-  if (state.submissionMode === "pod") {
-    renderResponseMedia(result.response_json?.output || null);
-    renderPodStatus(result.response_json || {});
-    responseOutput.hidden = true;
-    responseOutput.textContent = "";
-  } else {
-    responseStatus.hidden = true;
-    responseStatus.textContent = "";
-    renderResponseMedia(null);
-    responseOutput.hidden = false;
-    responseOutput.textContent = result.response_json
-      ? JSON.stringify(result.response_json, null, 2)
-      : (result.response_text || "");
-  }
+  responseStatus.hidden = true;
+  responseStatus.textContent = "";
+  responseMedia.hidden = true;
+  responseOutput.hidden = false;
+  responseOutput.textContent = result.response_json
+    ? JSON.stringify(result.response_json, null, 2)
+    : (result.response_text || "");
 
   responsePanel.hidden = false;
-}
-
-function renderPodStatus(responseJson) {
-  const status = responseJson?.status || "";
-  const hasOutput = Boolean(responseJson?.output);
-  const renderTimeSec = responseJson?.metadata?.render_time_sec;
-
-  if (hasOutput) {
-    responseStatus.textContent =
-      typeof renderTimeSec === "number"
-        ? `Generation time: ${renderTimeSec.toFixed(2)}s`
-        : "Generation complete.";
-    responseStatus.hidden = false;
-    return;
-  }
-
-  const statusCopy = {
-    queued: "Workflow queued locally.",
-    running: "ComfyUI is rendering the video.",
-    completed: "Render completed.",
-  };
-
-  responseStatus.textContent = statusCopy[status] || "Working on your video.";
-  responseStatus.hidden = false;
-}
-
-function renderResponseMedia(output) {
-  responseMedia.innerHTML = "";
-
-  if (!output || (!output.videos?.length && !output.images?.length)) {
-    responseMedia.hidden = true;
-    return;
-  }
-
-  const renderArtifactCard = (artifact, mediaKind) => {
-    const isVideo = (artifact.media_type || "").startsWith("video/") || mediaKind === "video";
-    const card = document.createElement("article");
-    card.className = "response-media-card";
-
-    const header = document.createElement("div");
-    header.className = "response-media-header";
-
-    const title = document.createElement("p");
-    title.className = "response-media-title";
-    title.textContent = artifact.filename;
-
-    const saveLink = document.createElement("a");
-    saveLink.className = "response-media-link";
-    saveLink.href = artifact.download_url || artifact.url;
-    saveLink.textContent = isVideo ? "Save video" : "Save image";
-    saveLink.setAttribute("download", artifact.filename);
-
-    header.appendChild(title);
-    header.appendChild(saveLink);
-    card.appendChild(header);
-
-    if (isVideo) {
-      const video = document.createElement("video");
-      video.className = "response-video";
-      video.src = artifact.url;
-      video.controls = true;
-      video.preload = "metadata";
-      card.appendChild(video);
-    } else {
-      const image = document.createElement("img");
-      image.className = "response-image";
-      image.src = artifact.url;
-      image.alt = artifact.filename;
-      card.appendChild(image);
-    }
-
-    return card;
-  };
-
-  output.videos?.forEach((artifact) => {
-    responseMedia.appendChild(renderArtifactCard(artifact, "video"));
-  });
-
-  output.images?.forEach((artifact) => {
-    responseMedia.appendChild(renderArtifactCard(artifact, "image"));
-  });
-
-  responseMedia.hidden = false;
-}
-
-async function pollPodSubmitStatus(promptId, nodeUsed) {
-  const deadline = Date.now() + POD_STATUS_POLL_TIMEOUT_MS;
-  const statusUrl = new URL(`/api/pod-submit/${encodeURIComponent(promptId)}`, window.location.origin);
-  if (nodeUsed) {
-    statusUrl.searchParams.set("node", nodeUsed);
-  }
-
-  while (Date.now() < deadline) {
-    const response = await fetch(statusUrl);
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.detail || "Failed to poll local pod status.");
-    }
-
-    renderResponse(result);
-
-    if (result.response_json?.status === "completed") {
-      return result;
-    }
-
-    await sleep(POD_STATUS_POLL_INTERVAL_MS);
-  }
-
-  throw new Error("Local pod run timed out while waiting for ComfyUI history.");
 }
 
 async function initializeConfig() {
@@ -365,18 +141,18 @@ async function initializeConfig() {
   }
 
   const config = await response.json();
-  state.fps = config.fps;
-  state.runMode = config.run_mode || "worker";
-  state.submissionMode = config.submission_mode || "endpoint";
-  secondsField.min = String(config.seconds.min);
-  secondsField.max = String(config.seconds.max);
-  secondsField.step = String(config.seconds.step);
-  secondsField.value = String(config.seconds.default);
-  secondsMinLabel.textContent = formatSecondsLabel(config.seconds.min);
-  secondsDefaultLabel.textContent = formatSecondsLabel(config.seconds.default);
-  secondsMaxLabel.textContent = formatSecondsLabel(config.seconds.max);
-  updateSubmitModeUi();
-  updateDurationSummary();
+  numInferenceStepsField.min = String(config.num_inference_steps.min);
+  numInferenceStepsField.max = String(config.num_inference_steps.max);
+  numInferenceStepsField.value = String(config.num_inference_steps.default);
+  stepsValue.textContent = String(config.num_inference_steps.default);
+
+  guidanceScaleField.min = String(config.guidance_scale.min);
+  guidanceScaleField.max = String(config.guidance_scale.max);
+  guidanceScaleField.step = String(config.guidance_scale.step);
+  guidanceScaleField.value = String(config.guidance_scale.default);
+  guidanceValue.textContent = String(config.guidance_scale.default);
+
+  updateResolutionDisplay();
 }
 
 async function buildPayload({
@@ -390,12 +166,13 @@ async function buildPayload({
     return null;
   }
 
-  if (!state.file) {
-    setFeedback("Source image is required for the current workflow.", "error");
-    return null;
-  }
+  const dimensions = aspectDimensions[state.aspectRatio];
+  const width = dimensions.width;
+  const height = dimensions.height;
+  const numInferenceSteps = Number.parseInt(numInferenceStepsField.value, 10);
+  const guidanceScale = Number.parseFloat(guidanceScaleField.value);
+  const seed = Number.parseInt(seedField.value, 10) || 0;
 
-  const imageDataUrl = await readFileAsDataUrl(state.file);
   const response = await fetch("/api/payload", {
     method: "POST",
     headers: {
@@ -403,11 +180,12 @@ async function buildPayload({
     },
     body: JSON.stringify({
       prompt: promptField.value,
-      seconds: Number.parseFloat(secondsField.value),
+      width,
+      height,
       aspect_ratio: state.aspectRatio,
-      image_name: state.file.name,
-      image_data_url: imageDataUrl,
-      optimize_prompt: optimizeField.checked,
+      num_inference_steps: numInferenceSteps,
+      guidance_scale: guidanceScale,
+      seed,
     }),
   });
 
@@ -434,55 +212,22 @@ aspectButtons.forEach((button) => {
   button.addEventListener("click", () => {
     state.aspectRatio = button.dataset.aspectRatio;
     updateAspectButtons();
-    updateDurationSummary();
+    updateResolutionDisplay();
   });
 });
 
 promptField.addEventListener("input", updatePromptCounter);
-secondsField.addEventListener("input", updateDurationSummary);
+numInferenceStepsField.addEventListener("input", () => {
+  stepsValue.textContent = numInferenceStepsField.value;
+});
+guidanceScaleField.addEventListener("input", () => {
+  guidanceValue.textContent = guidanceScaleField.value;
+});
 copyButton.addEventListener("click", copyPayload);
 downloadButton.addEventListener("click", downloadPayload);
 
-uploadPanel.addEventListener("click", () => sourceImageInput.click());
-uploadPanel.addEventListener("keydown", (event) => {
-  if (event.key === "Enter" || event.key === " ") {
-    event.preventDefault();
-    sourceImageInput.click();
-  }
-});
-
-sourceImageInput.addEventListener("change", (event) => {
-  const [file] = event.target.files;
-  setFile(file || null);
-});
-
-["dragenter", "dragover"].forEach((eventName) => {
-  uploadPanel.addEventListener(eventName, (event) => {
-    event.preventDefault();
-    uploadPanel.classList.add("drag-active");
-  });
-});
-
-["dragleave", "drop"].forEach((eventName) => {
-  uploadPanel.addEventListener(eventName, (event) => {
-    event.preventDefault();
-    uploadPanel.classList.remove("drag-active");
-  });
-});
-
-uploadPanel.addEventListener("drop", (event) => {
-  const [file] = event.dataTransfer.files;
-  if (file && file.type.startsWith("image/")) {
-    setFile(file);
-  }
-});
-
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (state.submissionMode === "pod") {
-    submitButton.click();
-    return;
-  }
 
   setFeedback("");
 
@@ -495,58 +240,45 @@ form.addEventListener("submit", async (event) => {
     setFeedback(error.message, "error");
   } finally {
     generateButton.disabled = false;
-    generateButton.textContent = "Generate Payload";
+    generateButton.textContent = "Generate Image";
   }
 });
 
 submitButton.addEventListener("click", async () => {
   setFeedback("");
 
-  let endpointUrl = "";
-  if (state.submissionMode === "endpoint") {
-    endpointUrl = endpointUrlField.value.trim();
-  }
+  const endpointUrl = endpointUrlField.value.trim();
 
-  if (state.submissionMode === "endpoint" && !endpointUrl) {
+  if (!endpointUrl) {
     setFeedback("Endpoint URL is required before submit.", "error");
     endpointUrlField.focus();
     return;
   }
 
   submitButton.disabled = true;
-  submitButton.textContent = state.submissionMode === "pod" ? "Running..." : "Submitting...";
+  submitButton.textContent = "Submitting...";
 
   try {
     const payload = await buildPayload({
       scroll: false,
-      showPreview: state.submissionMode !== "pod",
-      successMessage:
-        state.submissionMode === "pod"
-          ? ""
-          : "Payload refreshed for submit.",
+      showPreview: true,
+      successMessage: "Payload refreshed for submit.",
     });
     if (!payload) {
       return;
     }
 
-    const response = await fetch(
-      state.submissionMode === "pod" ? "/api/pod-submit" : "/api/submit",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          payload,
-          ...(state.submissionMode === "endpoint"
-            ? {
-                endpoint_url: endpointUrl,
-                auth_token: authTokenField.value,
-              }
-            : {}),
-        }),
-      }
-    );
+    const response = await fetch("/api/submit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        endpoint_url: endpointUrl,
+        auth_token: authTokenField.value,
+        payload,
+      }),
+    });
 
     const result = await response.json();
     if (!response.ok) {
@@ -555,25 +287,6 @@ submitButton.addEventListener("click", async () => {
 
     renderResponse(result);
     responsePanel.scrollIntoView({ behavior: "smooth", block: "start" });
-
-    if (state.submissionMode === "pod") {
-      const promptId = result.response_json?.prompt_id || "";
-      const nodeUsed = result.response_json?.node_used || "";
-      if (!promptId) {
-        throw new Error("Local pod submit did not return a prompt_id.");
-      }
-
-      setFeedback("Workflow queued locally. Waiting for ComfyUI to finish.", "success");
-      submitButton.textContent = "Waiting for ComfyUI...";
-      const completedResult = await pollPodSubmitStatus(promptId, nodeUsed);
-      setFeedback(
-        completedResult.ok
-          ? "Local pod run finished successfully."
-          : `Local pod run returned HTTP ${completedResult.status_code}.`,
-        completedResult.ok ? "success" : "error"
-      );
-      return;
-    }
 
     setFeedback(
       result.ok
@@ -585,13 +298,11 @@ submitButton.addEventListener("click", async () => {
     setFeedback(error.message, "error");
   } finally {
     submitButton.disabled = false;
-    updateSubmitModeUi();
   }
 });
 
 updatePromptCounter();
 updateAspectButtons();
-setFile(null);
 initializeConfig().catch((error) => {
   setFeedback(error.message, "error");
 });

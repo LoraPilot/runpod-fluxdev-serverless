@@ -50,15 +50,6 @@ def performance_monitor(operation: str, request_id: str):
 ROOT_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = ROOT_DIR / "frontend"
 
-
-@app.middleware("http")
-async def add_request_id(request: Request, call_next) -> Response:
-    """Add request ID to all requests for tracing."""
-    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:8])
-    response = await call_next(request)
-    response.headers["X-Request-ID"] = request_id
-    return response
-
 # Flux configuration
 ASPECT_RATIOS = {
     "1:1": {"width": 1024, "height": 1024},
@@ -70,6 +61,15 @@ ASPECT_RATIOS = {
 
 app = FastAPI(title="FLUX.1-dev Image Generator")
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR / "static"), name="static")
+
+
+@app.middleware("http")
+async def add_request_id(request: Request, call_next) -> Response:
+    """Add request ID to all requests for tracing."""
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4())[:8])
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 
 @app.middleware("http")
