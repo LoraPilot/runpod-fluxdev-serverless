@@ -20,46 +20,6 @@
           "default": true,
           "advanced": false
         }
-      },
-      {
-        "key": "WEBSOCKET_RECONNECT_ATTEMPTS",
-        "input": {
-          "name": "Websocket Reconnect Attempts",
-          "type": "number",
-          "description": "How many times to retry if the connection drops",
-          "default": 5,
-          "advanced": true
-        }
-      },
-      {
-        "key": "WEBSOCKET_RECONNECT_DELAY_S",
-        "input": {
-          "name": "Websocket Reconnect Delay (s)",
-          "type": "number",
-          "description": "Seconds to wait between reconnect attempts",
-          "default": 3,
-          "advanced": true
-        }
-      },
-      {
-        "key": "WEBSOCKET_TRACE",
-        "input": {
-          "name": "Websocket Trace",
-          "type": "boolean",
-          "description": "Detailed connection logs (debug only)",
-          "default": false,
-          "advanced": true
-        }
-      },
-      {
-        "key": "REFRESH_WORKER",
-        "input": {
-          "name": "Refresh Worker",
-          "type": "boolean",
-          "description": "Restart the worker after each job for a clean state",
-          "default": false,
-          "advanced": true
-        }
       }
     ]
   }

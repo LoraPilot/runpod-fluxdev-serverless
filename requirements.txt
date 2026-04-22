@@ -4,7 +4,6 @@ cryptography==46.0.7
 requests
 aiohttp
 redis
-boto3
 fastapi
 uvicorn[standard]
 huggingface_hub[hf_transfer]>=0.30.0
