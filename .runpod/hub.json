@@ -3,7 +3,7 @@
   "description": "Run FLUX.1-dev text-to-image generation with persistent /workspace state",
   "type": "serverless",
   "category": "image",
-  "iconUrl": "https://cpjrphpz3t5wbwfe.public.blob.vercel-storage.com/comfy-ui.png",
+  "iconUrl": "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/flux-logo.png",
   "config": {
     "runsOn": "GPU",
     "containerDiskInGb": 120,

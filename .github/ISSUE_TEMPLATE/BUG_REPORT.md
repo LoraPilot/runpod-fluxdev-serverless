@@ -28,7 +28,7 @@ assignees: ""
 **Versions (please complete the following information):**
 
 - Docker version: [e.g. 20.10.7]
-- ComfyUI version: [e.g. 1.2.0]
+- FLUX.1-dev / diffusers version: [e.g. latest]
 - Host OS: [e.g. Ubuntu 20.04]
 
 **Additional context**
