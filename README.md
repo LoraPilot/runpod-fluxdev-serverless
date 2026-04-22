@@ -9,9 +9,9 @@ Less boot drama. More actual inference.
 
 ## Quickstart
 
-The simplest way to get started is to pull one of the pre-built Docker image from Docker Hub and deploy it as a RunPod serverless endpoint.
+The simplest way to get started is to pull a pre-built Docker image from Docker Hub and deploy it as a RunPod serverless endpoint.
 
-The Docker image includes both the FLUX.1-dev handler and the model in diffusers format, satisfying the case study requirements.
+Pre-built images include both the FLUX.1-dev handler and the model in diffusers format.
 
 1. Pull a pre-built Docker image from Docker Hub.
 2. Create a RunPod serverless template that uses that image.
@@ -21,9 +21,13 @@ The Docker image includes both the FLUX.1-dev handler and the model in diffusers
 
 For detailed deployment steps, see [Deployment Guide](docs/deployment.md).
 
-> **Note:** If you need to build the image yourself (instead of using pre-built images), you must provide `HUGGINGFACE_ACCESS_TOKEN` as a build argument for accessing the gated FLUX.1-dev model:
+> **Note:** If you need to build the image yourself (instead of using pre-built images), you can optionally provide `HUGGINGFACE_ACCESS_TOKEN` as a build argument to bake the model into the image. Without the token, the model will be downloaded at runtime from HuggingFace:
 > ```bash
+> # Build with model baked in (requires HuggingFace access token)
 > docker build --build-arg HUGGINGFACE_ACCESS_TOKEN=hf_xxx --platform linux/amd64 -t flux-dev-worker:latest .
+>
+> # Build without model (downloads at runtime)
+> docker build --platform linux/amd64 -t flux-dev-worker:latest .
 > ```
 
 ## Available Docker Images

@@ -76,13 +76,13 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
       fi; \
     fi
 
-# Download FLUX.1-dev model in diffusers format during build
+# Download FLUX.1-dev model in diffusers format during build (optional)
+# If HUGGINGFACE_ACCESS_TOKEN is not provided, the model will be downloaded at runtime
 RUN --mount=type=cache,target=/root/.cache/huggingface,sharing=locked \
     mkdir -p /workspace/models && \
     if [ -n "${HUGGINGFACE_ACCESS_TOKEN}" ]; then \
-      export HF_TOKEN="${HUGGINGFACE_ACCESS_TOKEN}"; \
-    fi && \
-    python -c "from diffusers import FluxPipeline; \
+      export HF_TOKEN="${HUGGINGFACE_ACCESS_TOKEN}" && \
+      python -c "from diffusers import FluxPipeline; \
 from pathlib import Path; \
 import os; \
 model_dir = Path('/workspace/models'); \
@@ -90,7 +90,10 @@ model_dir.mkdir(parents=True, exist_ok=True); \
 print('Downloading FLUX.1-dev in diffusers format...'); \
 pipeline = FluxPipeline.from_pretrained('black-forest-labs/FLUX.1-dev', torch_dtype='float32', token=os.environ.get('HF_TOKEN')); \
 pipeline.save_pretrained(str(model_dir)); \
-print('FLUX.1-dev model download completed successfully.')"
+print('FLUX.1-dev model download completed successfully.')"; \
+    else \
+      echo "HUGGINGFACE_ACCESS_TOKEN not provided - model will be downloaded at runtime"; \
+    fi
 
 # Add application code and scripts
 ADD src/start.sh src/bootstrap_workspace.sh src/bootstrap_flux.sh handler.py frontend_app.py test_input.json ./
