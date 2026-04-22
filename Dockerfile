@@ -91,7 +91,7 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     fi
 
 # Add application code and scripts
-ADD src/start.sh src/bootstrap_workspace.sh src/bootstrap_flux.sh src/network_volume.py handler.py frontend_app.py test_input.json ./
+ADD src/start.sh src/bootstrap_workspace.sh src/bootstrap_flux.sh handler.py frontend_app.py test_input.json ./
 ADD frontend /frontend
 RUN chmod +x /start.sh
 RUN chmod +x /bootstrap_workspace.sh

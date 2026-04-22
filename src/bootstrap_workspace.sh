@@ -219,27 +219,6 @@ sync_directory_entries_if_missing() {
     done
 }
 
-
-
-    if [ -n "${normalized_inode}" ] && [ "${legacy_inode}" = "${normalized_inode}" ]; then
-        return
-    fi
-
-    bootstrap_log "Removing legacy custom node path ${legacy_dir}"
-    rm -rf "${legacy_dir}"
-}
-
-sync_custom_nodes_from_image() {
-    local source_dir="$1"
-    local target_dir="$2"
-    local entry=""
-    local entry_name=""
-
-    if [ ! -d "${source_dir}" ]; then
-        return
-    fi
-
-    mkdir -p "${target_dir}"
 write_extra_model_paths() {
     local base_path="$1"
 
