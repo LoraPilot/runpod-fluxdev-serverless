@@ -1,4 +1,30 @@
-# [5.3.0](https://github.com/runpod-workers/worker-comfyui/compare/5.2.0...5.3.0) (2025-07-22)
+# [5.9.0](https://github.com/LoraPilot/runpod-fluxdev-serverless/compare/5.8.5...5.9.0) (2026-04-22)
+
+### Major Changes
+
+- feat: include FLUX.1-dev model in Docker image to satisfy case study requirements
+- refactor: remove RUN_MODE=pod functionality (only worker and local-api modes supported)
+- refactor: replace all LTX references with FLUX throughout the repository
+- fix: resolve unbound variable errors in bootstrap_workspace.sh
+
+### Features
+
+- Docker image now includes FLUX.1-dev model and components (flux1-dev.safetensors, t5xxl_fp16.safetensors, clip_l.safetensors, ae.safetensors)
+- Added HUGGINGFACE_ACCESS_TOKEN build argument for gated model access during build
+- bootstrap_flux.sh now skips download if model is already present in image
+
+### Breaking Changes
+
+- Removed pod mode support - only `worker` and `local-api` RUN_MODE values are valid
+- Removed LTX-specific environment variables (LTX23_PRELOAD_VARIANT, LTX23_PRELOAD_UPSCALERS)
+- FLUX_DEV_PRELOAD is no longer needed as model is baked into the image
+
+### Documentation Updates
+
+- Updated README.md to reflect model inclusion in Docker image
+- Updated all documentation to remove pod mode references
+- Updated GitHub workflows to use FLUX targets instead of LTX targets
+- Simplified customization guide to focus on additional models
 
 ## 5.8.5
 

@@ -10,7 +10,7 @@ It packages FluxPipeline from diffusers into Docker images, manages job handling
 - Uses Python 3.12 and a persistent `/workspace` bootstrap for the venv and caches.
 - Uses FluxPipeline from diffusers for text-to-image generation.
 - Targets CUDA 12.8 by default and CUDA 13 experimentally for newer Blackwell-oriented deployments.
-- Can preload the FLUX.1-dev model at startup into persistent storage.
+- Includes FLUX.1-dev model in the Docker image to satisfy case study requirements.
 
 ## Why It Wins
 

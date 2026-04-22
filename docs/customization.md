@@ -1,20 +1,19 @@
 # Customization
 
-This guide covers methods for adding your own models, custom nodes, and static input files into a custom image derived from this worker.
+This guide covers methods for customizing your FLUX.1-dev worker deployment.
 
 > [!TIP]
 >
-> **Looking for the easiest way to deploy custom workflows?**
+> **The FLUX.1-dev model is already included in the Docker image.**
 >
->
-> Use the manual methods below only if you need fine-grained control or prefer to manage everything yourself.
+> You only need customization if you want to add additional models, LoRAs, or modify the environment.
 
 ---
 
-There are two primary methods for **manual** customization:
+There are two primary methods for customization:
 
-1.  **Custom Dockerfile (recommended for manual setup):** Create your own `Dockerfile` starting `FROM` one of this repository's base images. This allows you to bake specific models and dependencies directly into your image. **This method does not require forking the repository.**
-2.  **Network Volume:** Store models on a persistent network volume attached to your RunPod endpoint. This is useful if you frequently change models or have very large models you don't want to include in the image build process.
+1.  **Custom Dockerfile (recommended):** Create your own `Dockerfile` starting from the base image to bake additional models or dependencies directly into your image.
+2.  **Network Volume:** Store additional models on a persistent network volume attached to your RunPod endpoint.
 
 ## Method 1: Custom Dockerfile
 
@@ -22,33 +21,19 @@ There are two primary methods for **manual** customization:
 >
 > This method does NOT require forking the repository.
 
-This is the most flexible and recommended approach for creating reproducible, customized worker environments.
+This is the most flexible approach for creating reproducible, customized worker environments.
 
 1.  **Create a `Dockerfile`:** In your own project directory, create a file named `Dockerfile`.
-2.  **Start with a Base Image:** Begin your `Dockerfile` by referencing one of the official base images. Using the `-base` tag is recommended as it provides a clean Python environment without pre-packaged models.
+2.  **Start with a Base Image:** Begin your `Dockerfile` by referencing the official base image.
     ```Dockerfile
     # start from a clean base image (replace <version> with the desired release)
     FROM your-dockerhub-id/flux-dev-worker:<version>-base-cuda12.8.1
     ```
-3.  **Install Custom Nodes:** Use the `comfy-node-install` (we had introduce our own cli tool here, as there is a [problem with comfy-cli not showing errors during installation](https://github.com/Comfy-Org/comfy-cli/pull/275)) command to add custom nodes by their name or URL, see [Comfy Registry](https://registry.comfy.org) to find the correct name. You can list multiple nodes.
+3.  **Add Additional Models:** Use `wget` or `curl` to download additional models and place them in the correct directories.
     ```Dockerfile
+    # Download additional LoRAs or models
+    RUN wget -O /workspace/models/loras/custom_lora.safetensors https://huggingface.co/...
     ```
-4.  **Download Models:** Use `wget` or `curl` to download models and place them in the correct directories.
->
-> checkpoints, clip, clip_vision, configs, controlnet, diffusers, embeddings, gligen, hypernetworks, loras, style_models, unet, upscale_models, vae, vae_approx, animatediff_models, animatediff_motion_lora, ipadapter, photomaker, sams, insightface, facerestore_models, facedetection, mmdets, instantid
-
-5.  **Add Static Input Files (Optional):** If your workflows consistently require specific input images, masks, videos, etc., you can copy them directly into the image.
-
-- Create an `input/` directory in the same folder as your `Dockerfile`.
-- Place your static files inside this `input/` directory.
-- Add a `COPY` command to your `Dockerfile`:
-
-  ```Dockerfile
-  # Copy local static input files
-  COPY input/ /workspace/input/
-  ```
-
-- These files can then be referenced in your workflow using a "Load Image" (or similar) node pointing to the filename (e.g.,`my_static_image.png`).
 
 Once you have created your custom `Dockerfile`, refer to the [Deployment Guide](deployment.md#deploying-custom-setups) for instructions on how to build, push and deploy your custom image to RunPod.
 
@@ -58,12 +43,8 @@ Once you have created your custom `Dockerfile`, refer to the [Deployment Guide](
 # start from a clean base image (replace <version> with the desired release)
 FROM your-dockerhub-id/flux-dev-worker:latest-base-cuda12.8.1
 
-# download models using wget or curl
-RUN wget -O /workspace/models/flux1-dev.safetensors https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/flux1-dev.safetensors
-
-# Copy local static input files (delete if not needed)
-# Assumes you have an 'input' folder next to your Dockerfile
-COPY input/ /workspace/input/
+# download additional models using wget or curl
+RUN wget -O /workspace/models/loras/custom_lora.safetensors https://huggingface.co/...
 ```
 
 ## Method 2: Network Volume

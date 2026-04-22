@@ -1,10 +1,16 @@
-# Network Volumes for FLUX.1-dev Model Paths
+# Network Volumes for FLUX.1-dev
 
 This document explains how to use RunPod **Network Volumes** with this worker, how model paths are resolved inside the container, which worker state is persisted on the volume, and how to debug cases where models are not detected.
 
 > **Scope**
 >
 > These instructions apply to **serverless endpoints** using this worker. Pods mount network volumes at `/workspace` by default. Serverless workers see the volume at `/runpod-volume`, and this worker creates a `/workspace` alias to that path so the runtime can use one internal root.
+
+> **Important**
+>
+> The FLUX.1-dev model is already included in the Docker image. Network volumes are optional and primarily used for:
+> - Persisting the Python venv and caches across worker restarts
+> - Storing additional models (LoRAs, custom checkpoints, etc.)
 
 ## Directory Mapping
 
