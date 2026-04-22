@@ -11,23 +11,22 @@ Use the hub metadata in `.runpod/hub.json` when publishing this template to RunP
 ## What is included?
 
 - FLUX.1-dev text-to-image generation using FluxPipeline from diffusers
+- FLUX.1-dev model baked into the Docker image in diffusers format
 - Redis caching for prompt deduplication
-- Optional startup preload for the FLUX.1-dev model
 - CUDA 12.8 as the default track, with an experimental CUDA 13 path for newer Blackwell-oriented hosts
-- Persistent `/workspace` for model caching
+- Persistent `/workspace` for Python venv and cache persistence
 
 ## Recommended deployment shape
 
-- Attach a network volume. Without it, cold starts will repeatedly redownload large model assets.
+- Attach a network volume for persistent Python venv and cache persistence.
 - Keep `PERSIST_WORKSPACE=true`.
 - Use at least 12 GB VRAM for practical FLUX.1-dev usage.
-- Plan for roughly 20 GB or more of disk for model assets.
+- Plan for roughly 20 GB or more of disk for workspace persistence.
 
 ## Important environment variables
 
-- `FLUX_DEV_PRELOAD`: `true` to preload FLUX.1-dev model at startup
-- `HUGGINGFACE_ACCESS_TOKEN`: optional token for startup downloads
 - `REDIS_URL`: Redis connection URL for caching (default: redis://localhost:6379)
+- `PERSIST_WORKSPACE`: Enable persistent `/workspace` for Python venv and cache persistence (default: true)
 
 ## Usage
 
