@@ -284,11 +284,13 @@ bootstrap_workspace() {
         "${cache_root}/triton" \
         "${cache_root}/xdg"
 
-    trap 'release_bootstrap_lock "'"${bootstrap_lock_dir}"'"' RETURN
+    if ! acquire_bootstrap_lock "${bootstrap_lock_dir}"; then
+        bootstrap_log "Failed to acquire bootstrap lock, aborting workspace bootstrap"
+        return 1
+    fi
 
     seed_directory_if_missing "${venv_image_root}" "${venv_root}" "Python virtualenv"
 
-    trap - RETURN
     release_bootstrap_lock "${bootstrap_lock_dir}"
 
     replace_with_symlink "${venv_runtime_root}" "${venv_root}"
