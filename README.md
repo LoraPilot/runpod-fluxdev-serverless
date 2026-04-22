@@ -90,6 +90,68 @@ The FLUX.1-dev model is included in the Docker image, so no preload is needed. W
 
 For the full list of environment variables, see [Configuration Guide](docs/configuration.md).
 
+## Testing the Endpoint
+
+### Local Testing
+
+You can test the endpoint locally using `docker-compose`:
+
+```bash
+docker-compose up --build
+curl -X POST http://localhost:8000/run \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input": {
+      "prompt": "A futuristic city at sunset, cinematic lighting",
+      "width": 1024,
+      "height": 1024,
+      "num_inference_steps": 50,
+      "guidance_scale": 3.5,
+      "seed": 42
+    }
+  }'
+```
+
+### Sample API Response
+
+```json
+{
+  "status": "success",
+  "image": "iVBORw0KGgoAAAANSUhEUgAA...<truncated base64 PNG data>...A5ElFTkSuQmCC",
+  "metadata": {
+    "generation_time_sec": 12.5,
+    "seed": 42
+  },
+  "cached": false
+}
+```
+
+The `image` field contains a base64-encoded PNG image. Decode it to view or save the generated image:
+
+```bash
+echo "iVBORw0KGgoAAAANSUhEUgAA..." | base64 -d > output.png
+```
+
+### RunPod Serverless Testing
+
+For a deployed RunPod serverless endpoint, use your endpoint URL and API key:
+
+```bash
+curl -X POST https://api.runpod.ai/v2/<endpoint_id>/runsync \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <api_key>" \
+  -d '{
+    "input": {
+      "prompt": "A futuristic city at sunset, cinematic lighting",
+      "width": 1024,
+      "height": 1024,
+      "num_inference_steps": 50,
+      "guidance_scale": 3.5,
+      "seed": 42
+    }
+  }'
+```
+
 ## Documentation
 
 - [Deployment Guide](docs/deployment.md) - Detailed RunPod template/endpoint creation, GPU recommendations
