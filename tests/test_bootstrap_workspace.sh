@@ -125,4 +125,4 @@ STALE_WAIT_ELAPSED=$(( $(date +%s) - STALE_WAIT_START ))
     exit 1
 }
 
-echo "✅ bootstrap_workspace persistence and fallback behavior verified"
+echo "[PASS] bootstrap_workspace persistence and fallback behavior verified"

@@ -47,6 +47,6 @@ Example payload:
 
 The full API payload format and deployment notes live in the main project docs:
 
-- [Repository README](https://github.com/vavo/flux-dev-serverless/blob/main/README.md)
-- [Deployment Guide](https://github.com/vavo/flux-dev-serverless/blob/main/docs/deployment.md)
-- [Network Volume Notes](https://github.com/vavo/flux-dev-serverless/blob/main/docs/network-volumes.md)
+- [Repository README](https://github.com/LoraPilot/runpod-fluxdev-serverless/blob/main/README.md)
+- [Deployment Guide](https://github.com/LoraPilot/runpod-fluxdev-serverless/blob/main/docs/deployment.md)
+- [Network Volume Notes](https://github.com/LoraPilot/runpod-fluxdev-serverless/blob/main/docs/network-volumes.md)

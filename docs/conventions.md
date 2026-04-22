@@ -27,8 +27,8 @@ This document outlines the key operational and structural conventions for the pr
 
 ## 1. Configuration
 
-- **Environment Variables:** All external configurations (e.g., AWS S3 credentials, RunPod behavior modifications like `REFRESH_WORKER`) **must** be managed via environment variables.
-- Refer to the main `README.md` sections "Config" and "Upload image to AWS S3" for details on available variables.
+- **Environment Variables:** All external configurations (for example Redis caching, model path overrides, and RunPod behavior modifications like `REFRESH_WORKER`) **must** be managed via environment variables.
+- Refer to the main `README.md` and [Configuration Guide](configuration.md) for the current environment variable surface.
 
 ## 2. Docker Usage
 

@@ -14,8 +14,8 @@ This guide covers setting up your local environment for developing and testing t
 
 1.  **Clone the repository** (if you haven't already):
     ```bash
-    git clone https://github.com/vavo/flux-dev-serverless.git
-    cd flux-dev-serverless
+    git clone https://github.com/LoraPilot/runpod-fluxdev-serverless.git
+    cd runpod-fluxdev-serverless
     ```
 2.  **Create a virtual environment**:
     ```bash
@@ -129,8 +129,9 @@ For enhanced local development and end-to-end testing, you can start a local env
 
 ### Access the Local Frontend
 
-- The bundled payload-builder frontend auto-starts in the same container and is accessible at: [http://localhost:7777](http://localhost:7777)
-- You can disable it by setting environment variable if you only want the worker.
+- The bundled payload-builder frontend auto-starts inside the same container on port `7777`.
+- The current `docker-compose.yml` only publishes port `8000`, so the frontend is **not** reachable from the host unless you add a `7777:7777` port mapping first.
+- You can disable the frontend by setting `FLUX_FRONTEND_ENABLED=false` if you only want the worker API.
 
 ### Stopping the Local Environment
 

@@ -16,7 +16,7 @@ This is the simplest method if the official images meet your needs.
   - Container Registry Credentials: Leave as default (images are public).
   - Container Disk: Adjust based on the chosen image tag, see [GPU Recommendations](#gpu-recommendations).
   - (optional) Environment Variables: Configure `REDIS_URL` or other settings (see [Configuration Guide](configuration.md)). Only use `FLUX_DEV_PRELOAD` and `HUGGINGFACE_ACCESS_TOKEN` if you intentionally built an image without the baked model.
-    - Note: If you don't configure S3, images are returned as base64. For persistent storage across jobs without S3, consider using a [Network Volume](customization.md#method-2-network-volume-alternative-for-models). If models on your network volume are not being detected, see [Network Volumes & Model Paths](network-volumes.md) for troubleshooting steps.
+    - Generated images are returned inline as base64 in the API response. If you want persistence across jobs, use a [Network Volume](customization.md#method-2-network-volume-alternative-for-models) for model and cache state. If models on your network volume are not being detected, see [Network Volumes & Model Paths](network-volumes.md) for troubleshooting steps.
 - Click on `Save Template`
 
 ### Create your endpoint

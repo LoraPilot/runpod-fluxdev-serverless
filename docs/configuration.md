@@ -14,9 +14,8 @@ This document outlines the environment variables available for configuring the w
 | `WORKSPACE_STATE_ROOT` | Override the state directory inside the persistent workspace.                                                                                                                         | `/workspace/worker-venv` |
 | `HUGGINGFACE_ACCESS_TOKEN` | Optional token used when the base model is not baked into the image and the worker must download it at startup. `HF_TOKEN` and `HUGGINGFACE_TOKEN` are also accepted aliases by the preload script. | – |
 | `FLUX_MODEL_PATH` | Optional override for the local diffusers model directory. If unset, the worker prefers a valid `/workspace/models` copy and otherwise falls back to the baked image copy under `/opt/models/FLUX.1-dev`. | auto |
-| `REDIS_URL` | Redis connection used for rate limiting, dedupe, job status, and circuit breaker state. | `redis://localhost:6379` |
-| `CACHE_TTL_SECONDS` | How long successful deduped responses stay cached in Redis. | `604800` |
-| `AWS_BUCKET_NAME` | Enable S3 upload mode for generated image and video outputs. | – |
+| `REDIS_URL` | Redis connection used for successful response caching. If Redis is unavailable, the worker still runs and simply skips cache reads and writes. | `redis://localhost:6379` |
+| `CACHE_TTL_SECONDS` | How long successful cached responses stay in Redis. | `604800` |
 
 ## Bootstrap Locking
 
