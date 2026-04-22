@@ -21,12 +21,12 @@ Pre-built images include both the FLUX.1-dev handler and the model in diffusers 
 
 For detailed deployment steps, see [Deployment Guide](docs/deployment.md).
 
-> **Note:** If you need to build the image yourself (instead of using pre-built images), you can optionally provide `HUGGINGFACE_ACCESS_TOKEN` as a build argument to bake the model into the image. Without the token, the model will be downloaded at runtime from HuggingFace:
+> **Note:** If you need to build the image yourself (instead of using pre-built images), you can optionally provide `HUGGINGFACE_ACCESS_TOKEN` as a build argument to bake the model into the image-owned path `/opt/models/FLUX.1-dev`. Without the token, the image builds without the base model and you can still opt into runtime preload later:
 > ```bash
 > # Build with model baked in (requires HuggingFace access token)
 > docker build --build-arg HUGGINGFACE_ACCESS_TOKEN=hf_xxx --platform linux/amd64 -t flux-dev-worker:latest .
 >
-> # Build without model (downloads at runtime)
+> # Build without model (set FLUX_DEV_PRELOAD=true at runtime if you want startup download)
 > docker build --platform linux/amd64 -t flux-dev-worker:latest .
 > ```
 
@@ -86,11 +86,12 @@ For a sane first boot on RunPod serverless, use:
 
 ```env
 PERSIST_WORKSPACE=true
-HUGGINGFACE_ACCESS_TOKEN=hf_xxx
 REDIS_URL=redis://localhost:6379
 ```
 
 The FLUX.1-dev model is included in the Docker image, so no preload is needed. Workspace persistence caches Python venv and other assets across worker restarts.
+
+If you intentionally built an image without the model baked in, set `FLUX_DEV_PRELOAD=true` and provide `HUGGINGFACE_ACCESS_TOKEN=hf_xxx` at runtime so the worker can download the model into `/workspace/models`.
 
 For the full list of environment variables, see [Configuration Guide](docs/configuration.md).
 

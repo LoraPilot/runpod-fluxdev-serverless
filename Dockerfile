@@ -23,6 +23,7 @@ ENV PIP_PREFER_BINARY=1
 ENV PYTHONUNBUFFERED=1
 # Speed up some cmake builds
 ENV CMAKE_BUILD_PARALLEL_LEVEL=8
+ENV FLUX_IMAGE_MODEL_PATH=/opt/models/FLUX.1-dev
 
 # Install Python, git and other necessary tools
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -79,12 +80,12 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
 # Download FLUX.1-dev model in diffusers format during build (optional)
 # If HUGGINGFACE_ACCESS_TOKEN is not provided, the model will be downloaded at runtime
 RUN --mount=type=cache,target=/root/.cache/huggingface,sharing=locked \
-    mkdir -p /workspace/models && \
+    mkdir -p "${FLUX_IMAGE_MODEL_PATH}" && \
     if [ -n "${HUGGINGFACE_ACCESS_TOKEN}" ]; then \
       export HF_TOKEN="${HUGGINGFACE_ACCESS_TOKEN}" && \
       export HF_HUB_ENABLE_HF_TRANSFER=1 && \
       echo "Downloading FLUX.1-dev in diffusers format using huggingface-cli..." && \
-      huggingface-cli download black-forest-labs/FLUX.1-dev --local-dir /workspace/models --local-dir-use-symlinks False && \
+      huggingface-cli download black-forest-labs/FLUX.1-dev --local-dir "${FLUX_IMAGE_MODEL_PATH}" --local-dir-use-symlinks False && \
       echo "FLUX.1-dev model download completed successfully."; \
     else \
       echo "HUGGINGFACE_ACCESS_TOKEN not provided - model will be downloaded at runtime"; \

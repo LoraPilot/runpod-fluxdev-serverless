@@ -15,7 +15,7 @@ This is the simplest method if the official images meet your needs.
   - Container Image: Use one of the Flux-oriented tags from the main [README.md](../README.md#available-docker-images), for example `<repo>:<version>-flux-dev-cu128`. If you are building your own clean base, plain `base` now defaults to CUDA 12.8.1 / cu128.
   - Container Registry Credentials: Leave as default (images are public).
   - Container Disk: Adjust based on the chosen image tag, see [GPU Recommendations](#gpu-recommendations).
-  - (optional) Environment Variables: Configure `FLUX_DEV_PRELOAD`, `HUGGINGFACE_ACCESS_TOKEN`, `REDIS_URL`, or other settings (see [Configuration Guide](configuration.md)).
+  - (optional) Environment Variables: Configure `REDIS_URL` or other settings (see [Configuration Guide](configuration.md)). Only use `FLUX_DEV_PRELOAD` and `HUGGINGFACE_ACCESS_TOKEN` if you intentionally built an image without the baked model.
     - Note: If you don't configure S3, images are returned as base64. For persistent storage across jobs without S3, consider using a [Network Volume](customization.md#method-2-network-volume-alternative-for-models). If models on your network volume are not being detected, see [Network Volumes & Model Paths](network-volumes.md) for troubleshooting steps.
 - Click on `Save Template`
 

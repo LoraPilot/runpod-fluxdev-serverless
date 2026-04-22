@@ -25,6 +25,12 @@ flux_hf_token() {
     printf '%s\n' ""
 }
 
+flux_has_diffusers_model() {
+    local model_root="$1"
+
+    [ -f "${model_root}/model_index.json" ] || [ -f "${model_root}/config.json" ]
+}
+
 flux_download() {
     local url="$1"
     local output_path="$2"
@@ -162,14 +168,18 @@ PY
 bootstrap_flux() {
     local preload="${FLUX_DEV_PRELOAD:-false}"
     local model_root="${FLUX_MODEL_ROOT:-/workspace/models}"
+    local image_model_root="${FLUX_IMAGE_MODEL_ROOT:-/opt/models/FLUX.1-dev}"
     local token
     local download_errors=0
     token="$(flux_hf_token)"
 
-    # Check if diffusers format model is already baked into the image
-    # Diffusers format has model_index.json or config.json in the model directory
-    if [ -f "${model_root}/model_index.json" ] || [ -f "${model_root}/config.json" ]; then
-        flux_log "FLUX.1-dev model already present in diffusers format, skipping download"
+    if flux_has_diffusers_model "${model_root}"; then
+        flux_log "FLUX.1-dev model already present in ${model_root}, skipping download"
+        return
+    fi
+
+    if flux_has_diffusers_model "${image_model_root}"; then
+        flux_log "FLUX.1-dev image-baked model already present in ${image_model_root}, skipping runtime download"
         return
     fi
 
@@ -180,6 +190,7 @@ bootstrap_flux() {
 
     flux_log "Starting Flux model preload..."
     flux_log "Model root: ${model_root}"
+    mkdir -p "${model_root}"
 
     # Download FLUX.1-dev in diffusers format
     flux_log "Downloading FLUX.1-dev in diffusers format..."

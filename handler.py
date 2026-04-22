@@ -89,7 +89,7 @@ class HandlerConfig:
         return cls(
             redis_url=os.environ.get("REDIS_URL", "redis://localhost:6379"),
             cache_ttl_seconds=int(os.environ.get("CACHE_TTL_SECONDS", "604800")),
-            model_path=os.environ.get("FLUX_MODEL_PATH", "/workspace/models"),
+            model_path=os.environ.get("FLUX_MODEL_PATH", ""),
         )
 
 
@@ -115,6 +115,53 @@ except Exception as e:
 
 # --- Global Pipeline (lazy loaded) ---
 _flux_pipeline = None
+MODEL_MARKER_FILES = ("model_index.json", "config.json")
+WORKSPACE_MODEL_PATH = "/workspace/models"
+IMAGE_MODEL_PATH = "/opt/models/FLUX.1-dev"
+
+
+def is_diffusers_model_dir(path: str) -> bool:
+    if not path:
+        return False
+
+    model_dir = Path(path)
+    if not model_dir.is_dir():
+        return False
+
+    return any((model_dir / marker).is_file() for marker in MODEL_MARKER_FILES)
+
+
+def resolve_model_path(logger: logging.LoggerAdapter) -> str | None:
+    candidates: list[tuple[str, str]] = []
+    seen_paths: set[str] = set()
+
+    if config.model_path:
+        candidates.append(("FLUX_MODEL_PATH", config.model_path))
+
+    candidates.extend(
+        [
+            ("workspace", WORKSPACE_MODEL_PATH),
+            ("image", IMAGE_MODEL_PATH),
+        ]
+    )
+
+    for source_name, candidate_path in candidates:
+        normalized_path = os.path.abspath(candidate_path)
+        if normalized_path in seen_paths:
+            continue
+        seen_paths.add(normalized_path)
+
+        if is_diffusers_model_dir(candidate_path):
+            logger.info(f"Using {source_name} FLUX model at {candidate_path}")
+            return candidate_path
+
+        if Path(candidate_path).exists():
+            logger.warning(
+                f"Ignoring {source_name} model path {candidate_path}: missing diffusers metadata "
+                f"({', '.join(MODEL_MARKER_FILES)})"
+            )
+
+    return None
 
 
 def get_flux_pipeline(logger: logging.LoggerAdapter) -> FluxPipeline:
@@ -133,16 +180,17 @@ def get_flux_pipeline(logger: logging.LoggerAdapter) -> FluxPipeline:
     logger.info("Loading FluxPipeline...")
     with performance_monitor("model_loading", logger):
         try:
-            # Load from persistent storage or HuggingFace
-            if os.path.exists(config.model_path):
-                logger.info(f"Loading Flux model from {config.model_path}")
+            local_model_path = resolve_model_path(logger)
+
+            if local_model_path:
+                logger.info(f"Loading Flux model from {local_model_path}")
                 _flux_pipeline = FluxPipeline.from_pretrained(
-                    config.model_path,
+                    local_model_path,
                     torch_dtype=torch.bfloat16,
                     use_safetensors=True
                 )
             else:
-                logger.info("Loading Flux model from HuggingFace")
+                logger.info("No valid local diffusers model found; loading Flux model from HuggingFace")
                 _flux_pipeline = FluxPipeline.from_pretrained(
                     "black-forest-labs/FLUX.1-dev",
                     torch_dtype=torch.bfloat16

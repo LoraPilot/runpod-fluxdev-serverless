@@ -3,6 +3,8 @@ from unittest.mock import patch, MagicMock
 import sys
 import os
 import json
+import tempfile
+from pathlib import Path
 
 # Add parent directory to path to import handler.py
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -136,6 +138,25 @@ class TestFluxHandler(unittest.TestCase):
         raw_value = json.dumps(response)
         decoded = handler.decode_cached_response(raw_value)
         self.assertIsNone(decoded)
+
+    def test_is_diffusers_model_dir_requires_metadata(self):
+        """Test local model detection requires diffusers metadata files."""
+        with tempfile.TemporaryDirectory() as model_dir:
+            self.assertFalse(handler.is_diffusers_model_dir(model_dir))
+            Path(model_dir, "model_index.json").write_text("{}", encoding="utf-8")
+            self.assertTrue(handler.is_diffusers_model_dir(model_dir))
+
+    def test_resolve_model_path_falls_back_to_baked_image_model(self):
+        """Test local resolution prefers a valid baked image model over an empty workspace directory."""
+        with tempfile.TemporaryDirectory() as workspace_dir, tempfile.TemporaryDirectory() as image_dir:
+            Path(image_dir, "model_index.json").write_text("{}", encoding="utf-8")
+
+            with patch.object(handler, "WORKSPACE_MODEL_PATH", workspace_dir), \
+                 patch.object(handler, "IMAGE_MODEL_PATH", image_dir), \
+                 patch.object(handler.config, "model_path", ""):
+                resolved = handler.resolve_model_path(MagicMock())
+
+            self.assertEqual(resolved, image_dir)
 
     def test_handler_config_from_env(self):
         """Test configuration loading from environment variables."""
