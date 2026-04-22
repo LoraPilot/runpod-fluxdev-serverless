@@ -220,5 +220,3 @@ bootstrap_flux() {
 
     flux_log "Flux model preload completed successfully."
 }
-
-bootstrap_flux

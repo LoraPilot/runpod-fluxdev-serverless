@@ -7,17 +7,11 @@ ARG BASE_IMAGE=nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04
 FROM ${BASE_IMAGE} AS base
 
 # Build arguments for this stage with sensible defaults for standalone builds
-ARG COMFYUI_VERSION=latest
-ARG CUDA_VERSION_FOR_COMFY
 ARG ENABLE_PYTORCH_UPGRADE=true
 ARG PYTORCH_INDEX_URL=https://download.pytorch.org/whl/cu128
 ARG PYTORCH_PACKAGES="torch torchvision torchaudio"
 ARG EXTRA_PYTHON_PACKAGES=""
 ARG EXTRA_PYTHON_INDEX_URL=""
-ARG INSTALL_COMFYUI_MANAGER=true
-ARG COMFYUI_MANAGER_REF=""
-ARG INSTALL_COMFYUI_DOWNLOADER=true
-ARG COMFYUI_DOWNLOADER_REF=""
 ARG FLUX_DEV_PRELOAD=""
 
 # Prevents prompts from packages asking for user input during installation
@@ -65,15 +59,6 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     if [ "$ENABLE_PYTORCH_UPGRADE" = "true" ]; then \
       python -m pip install --force-reinstall ${PYTORCH_PACKAGES} --index-url ${PYTORCH_INDEX_URL}; \
     fi
-
-# Change working directory to ComfyUI
-WORKDIR /comfyui
-
-# Support for the network volume
-ADD src/extra_model_paths.yaml ./
-
-# Go back to the root
-WORKDIR /
 
 # Install Python runtime dependencies for the handler
 ADD requirements.txt ./
