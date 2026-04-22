@@ -89,7 +89,7 @@ class HandlerConfig:
         return cls(
             redis_url=os.environ.get("REDIS_URL", "redis://localhost:6379"),
             cache_ttl_seconds=int(os.environ.get("CACHE_TTL_SECONDS", "604800")),
-            model_path=os.environ.get("FLUX_MODEL_PATH", "/workspace/models/diffusion_models/flux1-dev.safetensors"),
+            model_path=os.environ.get("FLUX_MODEL_PATH", "/workspace/models"),
         )
 
 
@@ -137,7 +137,7 @@ def get_flux_pipeline(logger: logging.LoggerAdapter) -> FluxPipeline:
             if os.path.exists(config.model_path):
                 logger.info(f"Loading Flux model from {config.model_path}")
                 _flux_pipeline = FluxPipeline.from_pretrained(
-                    "/workspace/models",
+                    config.model_path,
                     torch_dtype=torch.bfloat16,
                     use_safetensors=True
                 )
