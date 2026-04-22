@@ -1,5 +1,5 @@
 services:
-  comfyui-worker:
+  flux-dev-worker:
     image: flux-dev-worker:dev
     pull_policy: never
     deploy:
@@ -13,8 +13,5 @@ services:
       - RUN_MODE=local-api
     ports:
       - "8000:8000"
-      - "8188:8188"
-      - "7777:7777"
     volumes:
-      - ./data/comfyui/output:/comfyui/output
       - ./data/runpod-volume:/runpod-volume

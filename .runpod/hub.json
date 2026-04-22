@@ -12,16 +12,6 @@
     "allowedCudaVersions": ["13.0", "12.8", "12.7", "12.6"],
     "env": [
       {
-        "key": "FLUX_DEV_PRELOAD",
-        "input": {
-          "name": "FLUX.1-dev Preload",
-          "type": "boolean",
-          "description": "Preload FLUX.1-dev model into persistent storage on startup",
-          "default": true,
-          "advanced": false
-        }
-      },
-      {
         "key": "PERSIST_WORKSPACE",
         "input": {
           "name": "Persist /workspace",
@@ -29,76 +19,6 @@
           "description": "Store Python venv, caches, and downloaded assets on the attached network volume",
           "default": true,
           "advanced": false
-        }
-      },
-      {
-        "key": "HUGGINGFACE_ACCESS_TOKEN",
-        "input": {
-          "name": "Hugging Face Token",
-          "type": "string",
-          "description": "Optional token for gated or rate-limited model downloads during startup",
-          "default": "",
-          "advanced": true
-        }
-      },
-      {
-        "key": "COMFY_ORG_API_KEY",
-        "input": {
-          "name": "Comfy.org API Key",
-          "type": "string",
-          "description": "Enter your Comfy.org API key to use API Nodes",
-          "default": "",
-          "advanced": false
-        }
-      },
-      {
-        "key": "BUCKET_ENDPOINT_URL",
-        "input": {
-          "name": "S3 Bucket Endpoint URL",
-          "type": "string",
-          "description": "Upload images to S3 (e.g. https://<bucket>.s3.<region>.amazonaws.com)",
-          "default": "",
-          "advanced": true
-        }
-      },
-      {
-        "key": "BUCKET_ACCESS_KEY_ID",
-        "input": {
-          "name": "S3 Access Key ID",
-          "type": "string",
-          "description": "AWS Access Key ID (if S3 upload is enabled)",
-          "default": "",
-          "advanced": true
-        }
-      },
-      {
-        "key": "BUCKET_SECRET_ACCESS_KEY",
-        "input": {
-          "name": "S3 Secret Access Key",
-          "type": "string",
-          "description": "AWS Secret Access Key (if S3 upload is enabled)",
-          "default": "",
-          "advanced": true
-        }
-      },
-      {
-        "key": "SERVE_API_LOCALLY",
-        "input": {
-          "name": "Serve API Locally (dev)",
-          "type": "boolean",
-          "description": "Dev only: run a local test API",
-          "default": false,
-          "advanced": true
-        }
-      },
-      {
-        "key": "COMFY_LOG_LEVEL",
-        "input": {
-          "name": "ComfyUI Log Level",
-          "type": "string",
-          "description": "Log level for ComfyUI (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
-          "default": "DEBUG",
-          "advanced": true
         }
       },
       {
