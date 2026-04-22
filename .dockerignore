@@ -1,17 +1,39 @@
-node_modules
-.changeset
+# Git
 .git
 .github
 .gitignore
+
+# Docker
 .dockerignore
-.vscode
-.idea
-.DS_Store
-**/.DS_Store
+
+# Documentation
+docs/
+CHANGELOG.md
+CLAUDE.md
+AGENTS.md
+
+# Tests
+tests/
+test_resources/
+
+# RunPod metadata
+.runpod/
+
+# Node.js (legacy)
+node_modules/
+package.json
+pnpm-lock.yaml
+.changeset/
+
+# Python
 __pycache__
 **/__pycache__
 *.py[cod]
-*.log
+*.pyo
+*.pyd
+venv/
+.venv/
+env/
 .pytest_cache
 **/.pytest_cache
 .mypy_cache
@@ -19,20 +41,24 @@ __pycache__
 .coverage
 .coverage.*
 htmlcov
-venv
-.venv
-env
+
+# Environment
 .env
 .env.*
-data
-models
-simulated_uploaded
-docs
-tests
-test_resources
-CHANGELOG.md
-CLAUDE.md
-AGENTS.md
-.runpod
-package.json
-pnpm-lock.yaml
+
+# Local data
+data/
+models/
+simulated_uploaded/
+
+# Editor
+.vscode
+.idea
+
+# OS
+.DS_Store
+**/.DS_Store
+Thumbs.db
+
+# Logs
+*.log

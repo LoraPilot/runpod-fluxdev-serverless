@@ -1,23 +1,39 @@
+# OS
 .DS_Store
 .DS_Store?
-venv
-.venv
-env
-.env
-.env.*
-!.env.example
-data
-models
-simulated_uploaded
+Thumbs.db
+
+# Python
+venv/
+.venv/
+env/
 __pycache__/
 **/__pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-node_modules
-.buildx-cache/
+*.egg-info/
+dist/
+build/
 
-# Python/test junk
+# Environment
+.env
+.env.*
+!.env.example
+
+# Local data directories
+data/
+models/
+simulated_uploaded/
+
+# Node.js (legacy, remove when package.json removed)
+node_modules/
+
+# Docker
+.buildx-cache/
+.buildx-cache-new/
+
+# Python/test
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -25,7 +41,7 @@ node_modules
 .coverage.*
 htmlcov/
 
-# Editor noise
+# Editor
 .vscode/
 .idea/
 
@@ -33,14 +49,8 @@ htmlcov/
 *.log
 core
 core.*
-.buildx-cache-new/
-
-# OS / local runtime junk
-Thumbs.db
 *.pid
 
 # Local planning docs
-docs/planning/004_refactor_plan.local.md
-tmp/pdfs/case_study-1.png
-.gitignore
-tmp/pdfs/case_study-2.png
+docs/planning/*.local.md
+tmp/pdfs/
