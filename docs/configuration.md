@@ -30,12 +30,10 @@ For the least annoying first worker boot on RunPod serverless, set:
 ```env
 PERSIST_WORKSPACE=true
 RUN_MODE=worker
-FLUX_DEV_PRELOAD=true
-HUGGINGFACE_ACCESS_TOKEN=hf_xxx
 REDIS_URL=redis://localhost:6379
 ```
 
-That startup preload covers the FLUX.1-dev model. Some secondary weights can still download on first render into the persistent model storage.
+The FLUX.1-dev model is already included in the Docker image in diffusers format. No runtime preload is needed. Workspace persistence caches Python venv and other assets across worker restarts.
 
 ## Runtime Paths
 

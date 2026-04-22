@@ -39,6 +39,10 @@ variable "FLUX_DEV_PRELOAD" {
   default = ""
 }
 
+variable "HUGGINGFACE_ACCESS_TOKEN" {
+  default = ""
+}
+
 group "default" {
   targets = ["base", "base-cuda12-8-1", "base-cuda13-0", "flux-dev", "flux-dev-cuda13"]
 }
@@ -106,7 +110,8 @@ target "flux-dev" {
     PYTORCH_PACKAGES = "${PYTORCH_PACKAGES}"
     EXTRA_PYTHON_PACKAGES = "${EXTRA_PYTHON_PACKAGES}"
     EXTRA_PYTHON_INDEX_URL = "${EXTRA_PYTHON_INDEX_URL}"
-        FLUX_DEV_PRELOAD = "true"
+    FLUX_DEV_PRELOAD = "true"
+    HUGGINGFACE_ACCESS_TOKEN = "${HUGGINGFACE_ACCESS_TOKEN}"
   }
   tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-flux-dev-cu128"]
 }
@@ -123,7 +128,8 @@ target "flux-dev-cuda13" {
     PYTORCH_PACKAGES = "${PYTORCH_PACKAGES}"
     EXTRA_PYTHON_PACKAGES = "${EXTRA_PYTHON_PACKAGES}"
     EXTRA_PYTHON_INDEX_URL = "${EXTRA_PYTHON_INDEX_URL}"
-        FLUX_DEV_PRELOAD = "true"
+    FLUX_DEV_PRELOAD = "true"
+    HUGGINGFACE_ACCESS_TOKEN = "${HUGGINGFACE_ACCESS_TOKEN}"
   }
   tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-flux-dev-cu130"]
 }

@@ -42,12 +42,10 @@ Use this for a sane first worker boot:
 ```env
 PERSIST_WORKSPACE=true
 RUN_MODE=worker
-FLUX_DEV_PRELOAD=true
-HUGGINGFACE_ACCESS_TOKEN=hf_xxx
 REDIS_URL=redis://localhost:6379
 ```
 
-That preloads the FLUX.1-dev model into persistent storage. Secondary assets may still download on the first render and then stay cached under `/workspace/models/`.
+The FLUX.1-dev model is already included in the Docker image in diffusers format. No runtime preload is needed. Workspace persistence caches Python venv and other assets across worker restarts.
 
 ## Hardware Baseline
 
