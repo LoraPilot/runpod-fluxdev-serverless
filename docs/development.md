@@ -132,21 +132,6 @@ For enhanced local development and end-to-end testing, you can start a local env
 - The bundled payload-builder frontend auto-starts in the same container and is accessible at: [http://localhost:7777](http://localhost:7777)
 - You can disable it by setting environment variable if you only want the worker.
 
-## Pod-Oriented Local Boot
-
-If you want to simulate a plain pod rather than the local RunPod API shim, set:
-
-```bash
-RUN_MODE=pod
-```
-
-That starts:
-
-- the frontend on `7777`
-
-and skips the serverless handler entirely.
-
-
 ### Stopping the Local Environment
 
 - Press `Ctrl+C` in the terminal where `docker-compose up` is running.

@@ -137,21 +137,17 @@ if [ -z "${RUN_MODE:-}" ]; then
 fi
 
 case "${RUN_MODE}" in
-    worker|local-api|pod)
+    worker|local-api)
         ;;
     *)
-        echo "worker-flux: Unsupported RUN_MODE=${RUN_MODE}. Use worker, local-api, or pod." >&2
+        echo "worker-flux: Unsupported RUN_MODE=${RUN_MODE}. Use worker or local-api." >&2
         exit 1
         ;;
 esac
 
 echo "worker-flux: Selected RUN_MODE=${RUN_MODE}"
 
-if [ "${RUN_MODE}" != "pod" ]; then
-    start_local_redis
-else
-    echo "worker-flux: Skipping Redis bootstrap in pod mode"
-fi
+start_local_redis
 
 
 
@@ -167,31 +163,12 @@ start_frontend() {
     echo "${FRONTEND_PID}" > "$FRONTEND_PID_FILE"
 }
 
-wait_for_pod_services() {
-    local pids=()
-    if [ -n "${FRONTEND_PID}" ]; then
-        pids+=("${FRONTEND_PID}")
-    fi
-
-    if [ "${#pids[@]}" -eq 0 ]; then
-        echo "worker-flux: No long-running services were started in pod mode." >&2
-        exit 1
-    fi
-
-    echo "worker-flux: Pod mode active; waiting on background services"
-    wait -n "${pids[@]}"
-}
-
 case "${RUN_MODE}" in
     local-api)
         start_frontend
 
         echo "worker-flux: Starting RunPod Handler in local API mode"
         python -u /handler.py --rp_serve_api --rp_api_host=0.0.0.0
-        ;;
-    pod)
-        start_frontend
-        wait_for_pod_services
         ;;
     worker)
         start_frontend

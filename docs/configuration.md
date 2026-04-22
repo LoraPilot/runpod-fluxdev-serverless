@@ -7,7 +7,7 @@ This document outlines the environment variables available for configuring the w
 | Environment Variable | Description                                                                                                                                                                                                                  | Default |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | `REFRESH_WORKER`     | When `true`, the worker pod will stop after each completed job to ensure a clean state for the next job. See the [RunPod documentation](https://docs.runpod.io/docs/handler-additional-controls#refresh-worker) for details. | `false` |
-| `RUN_MODE` | Container startup mode: `worker`, `local-api`, or `pod`. | `worker` |
+| `RUN_MODE` | Container startup mode: `worker` or `local-api`. | `worker` |
 | `SERVE_API_LOCALLY`  | Legacy compatibility flag. When `RUN_MODE` is unset and this is `true`, startup falls back to `local-api`. See the [Development Guide](development.md#local-api-simulation-using-docker-compose) for more details. | `false` |
 | `PERSIST_WORKSPACE`  | When `true`, persist the Python venv, caches, and downloaded assets under `/workspace` (which aliases `/runpod-volume` on serverless).                                                                            | `true`  |
 | `WORKSPACE_ROOT`     | Override the detected persistent workspace root. Useful only if your mount layout differs from RunPod defaults.                                                                                                              | auto    |
@@ -33,15 +33,6 @@ RUN_MODE=worker
 FLUX_DEV_PRELOAD=true
 HUGGINGFACE_ACCESS_TOKEN=hf_xxx
 REDIS_URL=redis://localhost:6379
-```
-
-For a plain pod:
-
-```env
-PERSIST_WORKSPACE=true
-RUN_MODE=pod
-FLUX_DEV_PRELOAD=true
-HUGGINGFACE_ACCESS_TOKEN=hf_xxx
 ```
 
 That startup preload covers the FLUX.1-dev model. Some secondary weights can still download on first render into the persistent model storage.
