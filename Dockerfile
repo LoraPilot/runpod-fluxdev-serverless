@@ -82,15 +82,10 @@ RUN --mount=type=cache,target=/root/.cache/huggingface,sharing=locked \
     mkdir -p /workspace/models && \
     if [ -n "${HUGGINGFACE_ACCESS_TOKEN}" ]; then \
       export HF_TOKEN="${HUGGINGFACE_ACCESS_TOKEN}" && \
-      python -c "from diffusers import FluxPipeline; \
-from pathlib import Path; \
-import os; \
-model_dir = Path('/workspace/models'); \
-model_dir.mkdir(parents=True, exist_ok=True); \
-print('Downloading FLUX.1-dev in diffusers format...'); \
-pipeline = FluxPipeline.from_pretrained('black-forest-labs/FLUX.1-dev', torch_dtype='float32', token=os.environ.get('HF_TOKEN')); \
-pipeline.save_pretrained(str(model_dir)); \
-print('FLUX.1-dev model download completed successfully.')"; \
+      export HF_HUB_ENABLE_HF_TRANSFER=1 && \
+      echo "Downloading FLUX.1-dev in diffusers format using huggingface-cli..." && \
+      huggingface-cli download black-forest-labs/FLUX.1-dev --local-dir /workspace/models --local-dir-use-symlinks False && \
+      echo "FLUX.1-dev model download completed successfully."; \
     else \
       echo "HUGGINGFACE_ACCESS_TOKEN not provided - model will be downloaded at runtime"; \
     fi
