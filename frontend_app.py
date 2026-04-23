@@ -62,6 +62,7 @@ ASPECT_RATIOS = {
 RUNPOD_PENDING_STATUSES = {"IN_QUEUE", "IN_PROGRESS"}
 RUNPOD_FAILURE_STATUSES = {"FAILED", "ERROR", "CANCELLED", "TIMED_OUT"}
 RUNPOD_POLL_INTERVAL_SECONDS = 2
+UPSTREAM_CONNECT_TIMEOUT_SECONDS = 15
 
 app = FastAPI(title="FLUX.1-dev Image Generator")
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR / "static"), name="static")
@@ -270,12 +271,22 @@ async def submit_payload(request: SubmitRequest, http_request: Request) -> dict[
     request_id = http_request.headers.get("X-Request-ID", "N/A")
     logger.info("Submitting payload", extra={"request_id": request_id, "endpoint_url": request.endpoint_url})
     
-    headers = {"Content-Type": "application/json"}
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/plain;q=0.9, */*;q=0.8",
+        # Avoid brotli responses on VPS installs that do not ship optional brotli support.
+        "Accept-Encoding": "gzip, deflate",
+    }
     auth_token = request.auth_token.strip()
     if auth_token:
         headers["Authorization"] = f"Bearer {auth_token}"
 
-    timeout = aiohttp.ClientTimeout(total=min(request.timeout_seconds, 30))
+    timeout = aiohttp.ClientTimeout(
+        total=request.timeout_seconds,
+        connect=min(request.timeout_seconds, UPSTREAM_CONNECT_TIMEOUT_SECONDS),
+        sock_connect=min(request.timeout_seconds, UPSTREAM_CONNECT_TIMEOUT_SECONDS),
+        sock_read=request.timeout_seconds,
+    )
     deadline = asyncio.get_event_loop().time() + request.timeout_seconds
 
     try:

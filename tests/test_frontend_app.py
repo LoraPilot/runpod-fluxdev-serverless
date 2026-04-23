@@ -32,6 +32,7 @@ class FakeClientSession:
         self._get_responses = list(get_responses or [])
         self.post_calls = []
         self.get_calls = []
+        self.init_kwargs = kwargs
 
     async def __aenter__(self):
         return self
@@ -104,8 +105,19 @@ class TestFrontendApp(unittest.TestCase):
                 )
             ],
         )
+        session_factory = lambda *args, **kwargs: fake_session.__class__(
+            post_responses=list(fake_session._post_responses),
+            get_responses=list(fake_session._get_responses),
+            **kwargs,
+        )
+        created_sessions: list[FakeClientSession] = []
 
-        with patch("frontend_app.aiohttp.ClientSession", return_value=fake_session), \
+        def build_session(*args, **kwargs):
+            session = session_factory(*args, **kwargs)
+            created_sessions.append(session)
+            return session
+
+        with patch("frontend_app.aiohttp.ClientSession", side_effect=build_session), \
              patch("frontend_app.asyncio.sleep", new=AsyncMock()):
             response = self.client.post(
                 "/api/submit",
@@ -123,9 +135,14 @@ class TestFrontendApp(unittest.TestCase):
         self.assertEqual(body["image_base64"], "base64string")
         self.assertEqual(body["image_data_url"], "data:image/png;base64,base64string")
         self.assertEqual(body["metadata"], {"seed": 123})
-        self.assertEqual(fake_session.post_calls[0]["json"], {"input": {"prompt": "hello"}})
+        self.assertEqual(len(created_sessions), 1)
+        created_session = created_sessions[0]
+        self.assertEqual(created_session.post_calls[0]["json"], {"input": {"prompt": "hello"}})
+        self.assertEqual(created_session.post_calls[0]["headers"]["Accept-Encoding"], "gzip, deflate")
+        self.assertEqual(created_session.post_calls[0]["headers"]["Authorization"], "Bearer secret")
+        self.assertEqual(created_session.init_kwargs["timeout"].total, 300)
         self.assertEqual(
-            fake_session.get_calls[0]["url"],
+            created_session.get_calls[0]["url"],
             "https://api.runpod.ai/v2/test-endpoint/status/job-123",
         )
 
