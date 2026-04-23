@@ -171,7 +171,7 @@ case "${RUN_MODE}" in
         python -u /handler.py --rp_serve_api --rp_api_host=0.0.0.0
         ;;
     worker)
-        start_frontend
+        echo "worker-flux: Frontend stays disabled in worker mode"
 
         echo "worker-flux: Starting RunPod Handler in worker mode"
         python -u /handler.py

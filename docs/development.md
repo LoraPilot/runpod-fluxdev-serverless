@@ -132,9 +132,10 @@ For enhanced local development and end-to-end testing, you can start a local env
 
 ### Access the Local Frontend
 
-- The bundled payload-builder frontend auto-starts inside the same container on port `7777`.
+- The bundled payload-builder frontend only auto-starts in `RUN_MODE=local-api`, on port `7777`.
 - The current `docker-compose.yml` only publishes port `8000`, so the frontend is **not** reachable from the host unless you add a `7777:7777` port mapping first.
-- You can disable the frontend by setting `FLUX_FRONTEND_ENABLED=false` if you only want the worker API.
+- `RUN_MODE=worker` no longer starts the frontend at all.
+- You can disable the frontend in `local-api` mode by setting `FLUX_FRONTEND_ENABLED=false` if you only want the worker API.
 
 ### Stopping the Local Environment
 

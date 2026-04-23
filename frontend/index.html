@@ -10,6 +10,10 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap"
       rel="stylesheet"
     />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236063ee'/%3E%3Ccircle cx='16' cy='16' r='8' fill='%236df5e1'/%3E%3C/svg%3E"
+    />
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
@@ -81,9 +85,9 @@
                   value="50"
                 />
                 <div class="range-markers">
-                  <span id="steps-min-label">10</span>
-                  <span id="steps-default-label">50</span>
-                  <span id="steps-max-label">100</span>
+                  <span id="steps-min-label" class="range-marker range-marker-start">10</span>
+                  <span id="steps-default-label" class="range-marker">50</span>
+                  <span id="steps-max-label" class="range-marker range-marker-end">100</span>
                 </div>
               </div>
 
@@ -104,9 +108,9 @@
                   value="3.5"
                 />
                 <div class="range-markers">
-                  <span id="guidance-min-label">1.0</span>
-                  <span id="guidance-default-label">3.5</span>
-                  <span id="guidance-max-label">10.0</span>
+                  <span id="guidance-min-label" class="range-marker range-marker-start">1.0</span>
+                  <span id="guidance-default-label" class="range-marker">3.5</span>
+                  <span id="guidance-max-label" class="range-marker range-marker-end">10.0</span>
                 </div>
               </div>
 
@@ -126,51 +130,47 @@
                 />
               </div>
             </section>
-          </div>
-
-          <section id="endpoint-panel" class="panel endpoint-panel">
-            <div class="endpoint-header">
-              <div>
-                <p class="payload-label">Submit</p>
-                <h2 id="submit-mode-title">Real endpoint</h2>
+            <section id="endpoint-panel" class="panel endpoint-panel">
+              <div class="endpoint-header">
+                <div>
+                  <p class="payload-label">Endpoint</p>
+                  <h2 id="submit-mode-title">RunPod config</h2>
+                </div>
+                <p id="submit-mode-copy" class="endpoint-copy">
+                  Full POST URL, for example
+                  <code>https://api.runpod.ai/v2/&lt;endpoint_id&gt;/runsync</code>
+                </p>
               </div>
-              <p id="submit-mode-copy" class="endpoint-copy">
-                Full POST URL, for example
-                <code>https://api.runpod.ai/v2/&lt;endpoint_id&gt;/runsync</code>
-              </p>
-            </div>
-            <div class="endpoint-grid">
-              <label class="field-group">
-                <span class="field-label">Endpoint URL</span>
-                <input
-                  id="endpoint-url"
-                  name="endpoint-url"
-                  type="url"
-                  placeholder="https://api.runpod.ai/v2/your-endpoint-id/runsync"
-                />
-              </label>
-              <label class="field-group">
-                <span class="field-label">Bearer Token</span>
-                <input
-                  id="auth-token"
-                  name="auth-token"
-                  type="password"
-                  placeholder="RunPod API key"
-                  autocomplete="off"
-                />
-              </label>
-            </div>
-          </section>
+              <div class="endpoint-grid">
+                <label class="field-group">
+                  <span class="field-label">Endpoint URL</span>
+                  <input
+                    id="endpoint-url"
+                    name="endpoint-url"
+                    type="url"
+                    placeholder="https://api.runpod.ai/v2/your-endpoint-id/runsync"
+                  />
+                </label>
+                <label class="field-group">
+                  <span class="field-label">Bearer Token</span>
+                  <input
+                    id="auth-token"
+                    name="auth-token"
+                    type="password"
+                    placeholder="RunPod API key"
+                    autocomplete="off"
+                  />
+                </label>
+              </div>
+            </section>
+          </div>
 
           <div class="actions">
             <button id="generate-button" class="primary-action" type="submit">
               Generate Image
             </button>
-            <button id="submit-button" class="secondary-hero-action" type="button">
-              Submit to Endpoint
-            </button>
             <p id="helper-copy" class="helper-copy">
-              Output matches the Flux.1-dev handler contract: `input.prompt` with optional generation parameters.
+              One click builds the payload, submits it, waits for completion, and previews the result.
             </p>
           </div>
         </form>
@@ -200,11 +200,48 @@
             </div>
           </div>
           <div id="response-summary" class="payload-summary"></div>
-          <p id="response-status" class="response-status" hidden></p>
-          <div id="response-media" class="response-media" hidden>
-            <img id="generated-image" alt="Generated image" />
+          <div class="response-tabs" role="tablist" aria-label="Response views">
+            <button
+              id="response-tab-image"
+              class="response-tab response-tab-active"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              aria-controls="response-image-view"
+              data-response-tab="image"
+            >
+              Image
+            </button>
+            <button
+              id="response-tab-json"
+              class="response-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="response-json-view"
+              data-response-tab="json"
+            >
+              JSON
+            </button>
           </div>
-          <pre id="response-output"></pre>
+          <div id="response-image-view" class="response-view">
+            <p id="response-status" class="response-status" hidden></p>
+            <div id="response-media" class="response-media" hidden>
+              <div class="response-media-card">
+                <div class="response-media-header">
+                  <p id="response-media-title" class="response-media-title">Generated image</p>
+                  <div class="payload-actions">
+                    <a id="open-image-link" class="secondary-action secondary-action-link" href="#" target="_blank" rel="noreferrer">Open</a>
+                    <a id="save-image-link" class="secondary-action secondary-action-link" href="#" download="flux-generated.png">Save PNG</a>
+                  </div>
+                </div>
+                <img id="generated-image" class="response-image" alt="Generated image" />
+              </div>
+            </div>
+          </div>
+          <div id="response-json-view" class="response-view" hidden>
+            <pre id="response-output"></pre>
+          </div>
         </section>
       </main>
     </div>

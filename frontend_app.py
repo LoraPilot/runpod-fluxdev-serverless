@@ -59,6 +59,10 @@ ASPECT_RATIOS = {
     "3:4": {"width": 896, "height": 1152},
 }
 
+RUNPOD_PENDING_STATUSES = {"IN_QUEUE", "IN_PROGRESS"}
+RUNPOD_FAILURE_STATUSES = {"FAILED", "ERROR", "CANCELLED", "TIMED_OUT"}
+RUNPOD_POLL_INTERVAL_SECONDS = 2
+
 app = FastAPI(title="FLUX.1-dev Image Generator")
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR / "static"), name="static")
 
@@ -108,6 +112,88 @@ class SubmitRequest(BaseModel):
         return normalized
 
 
+def build_runpod_status_url(endpoint_url: str, job_id: str) -> str:
+    normalized = endpoint_url.rstrip("/")
+    if normalized.endswith("/run") or normalized.endswith("/runsync"):
+        normalized = normalized.rsplit("/", 1)[0]
+    return f"{normalized}/status/{job_id}"
+
+
+def build_image_data_url(image_base64: str) -> str:
+    return f"data:image/png;base64,{image_base64}"
+
+
+def extract_image_result(response_json: Any) -> dict[str, Any] | None:
+    if not isinstance(response_json, dict):
+        return None
+
+    candidate = response_json
+    output = response_json.get("output")
+    if isinstance(output, dict):
+        candidate = output
+
+    image_base64 = candidate.get("image")
+    image_data_url = candidate.get("image_data_url")
+    if not image_data_url and image_base64:
+        image_data_url = build_image_data_url(image_base64)
+
+    if not image_base64 and not image_data_url:
+        return None
+
+    return {
+        "image_base64": image_base64,
+        "image_data_url": image_data_url,
+        "metadata": candidate.get("metadata"),
+        "output_status": candidate.get("status"),
+    }
+
+
+def extract_error_message(response_json: Any, response_text: str | None = None) -> str | None:
+    if isinstance(response_json, dict):
+        if isinstance(response_json.get("error"), str):
+            return response_json["error"]
+        output = response_json.get("output")
+        if isinstance(output, dict) and isinstance(output.get("error"), str):
+            return output["error"]
+        if isinstance(response_json.get("message"), str):
+            return response_json["message"]
+    if response_text:
+        return response_text
+    return None
+
+
+def build_submit_result(
+    *,
+    status_code: int,
+    content_type: str,
+    endpoint_url: str,
+    response_json: Any | None,
+    response_text: str | None,
+) -> dict[str, object]:
+    image_result = extract_image_result(response_json)
+    job_status = response_json.get("status") if isinstance(response_json, dict) else None
+    output_status = image_result.get("output_status") if image_result else None
+
+    ok = 200 <= status_code < 300
+    if job_status in RUNPOD_FAILURE_STATUSES or output_status == "error":
+        ok = False
+
+    return {
+        "ok": ok,
+        "status_code": status_code,
+        "content_type": content_type or "application/octet-stream",
+        "endpoint_url": endpoint_url,
+        "job_id": response_json.get("id") if isinstance(response_json, dict) else None,
+        "job_status": job_status,
+        "response_json": response_json,
+        "response_text": None if response_json is not None else response_text,
+        "image_base64": image_result.get("image_base64") if image_result else None,
+        "image_data_url": image_result.get("image_data_url") if image_result else None,
+        "metadata": image_result.get("metadata") if image_result else None,
+        "error_message": extract_error_message(response_json, response_text),
+    }
+
+
 
 
 @app.get("/", response_class=FileResponse)
@@ -153,14 +239,18 @@ async def create_payload(request: PayloadRequest, http_request: Request) -> dict
         width = request.width
         height = request.height
     
-    payload = {
+    input_payload = {
         "prompt": request.prompt,
         "width": width,
         "height": height,
         "num_inference_steps": request.num_inference_steps,
         "guidance_scale": request.guidance_scale,
-        "seed": request.seed if request.seed > 0 else None,
+        "include_image_data_url": True,
     }
+    if request.seed > 0:
+        input_payload["seed"] = request.seed
+
+    payload = {"input": input_payload}
 
     return {
         "payload": payload,
@@ -170,7 +260,7 @@ async def create_payload(request: PayloadRequest, http_request: Request) -> dict
             "aspect_ratio": request.aspect_ratio,
             "num_inference_steps": request.num_inference_steps,
             "guidance_scale": request.guidance_scale,
-            "seed": request.seed,
+            "seed": request.seed if request.seed > 0 else None,
         },
     }
 
@@ -185,7 +275,8 @@ async def submit_payload(request: SubmitRequest, http_request: Request) -> dict[
     if auth_token:
         headers["Authorization"] = f"Bearer {auth_token}"
 
-    timeout = aiohttp.ClientTimeout(total=request.timeout_seconds)
+    timeout = aiohttp.ClientTimeout(total=min(request.timeout_seconds, 30))
+    deadline = asyncio.get_event_loop().time() + request.timeout_seconds
 
     try:
         with performance_monitor("submit_request", request_id):
@@ -205,20 +296,64 @@ async def submit_payload(request: SubmitRequest, http_request: Request) -> dict[
                         except json.JSONDecodeError:
                             response_json = None
 
-                    logger.info(f"Submit response: {response.status}", extra={"request_id": request_id, "status_code": response.status})
-                    return {
-                        "ok": 200 <= response.status < 300,
-                        "status_code": response.status,
-                        "content_type": content_type or "application/octet-stream",
-                        "endpoint_url": request.endpoint_url,
-                        "response_json": response_json,
-                        "response_text": None if response_json is not None else raw_body,
-                    }
+                    final_status_code = response.status
+                    final_content_type = content_type
+                    final_response_json = response_json
+                    final_response_text = None if response_json is not None else raw_body
+
+                    if (
+                        isinstance(response_json, dict)
+                        and response_json.get("status") in RUNPOD_PENDING_STATUSES
+                        and response_json.get("id")
+                    ):
+                        job_id = response_json["id"]
+                        status_url = build_runpod_status_url(request.endpoint_url, job_id)
+                        logger.info(
+                            f"Polling RunPod job status at {status_url}",
+                            extra={"request_id": request_id, "job_id": job_id},
+                        )
+
+                        while True:
+                            remaining = deadline - asyncio.get_event_loop().time()
+                            if remaining <= 0:
+                                raise HTTPException(status_code=504, detail="Timed out while waiting for the RunPod job to finish.")
+
+                            await asyncio.sleep(min(RUNPOD_POLL_INTERVAL_SECONDS, max(0.1, remaining)))
+
+                            async with session.get(status_url, headers=headers) as status_response:
+                                final_status_code = status_response.status
+                                final_content_type = status_response.headers.get("Content-Type", "")
+                                status_body = await status_response.text()
+                                try:
+                                    final_response_json = json.loads(status_body)
+                                    final_response_text = None
+                                except json.JSONDecodeError:
+                                    final_response_json = None
+                                    final_response_text = status_body
+
+                            current_status = (
+                                final_response_json.get("status")
+                                if isinstance(final_response_json, dict)
+                                else None
+                            )
+                            logger.info(
+                                f"Polled job status: {current_status or 'unknown'}",
+                                extra={"request_id": request_id, "job_id": job_id},
+                            )
+                            if current_status not in RUNPOD_PENDING_STATUSES:
+                                break
+
+                    logger.info(f"Submit response: {final_status_code}", extra={"request_id": request_id, "status_code": final_status_code})
+                    return build_submit_result(
+                        status_code=final_status_code,
+                        content_type=final_content_type,
+                        endpoint_url=request.endpoint_url,
+                        response_json=final_response_json,
+                        response_text=final_response_text,
+                    )
     except asyncio.TimeoutError as exc:
         logger.error(f"Submit request timed out", extra={"request_id": request_id})
         raise HTTPException(status_code=504, detail="Submit request timed out.") from exc
     except aiohttp.ClientError as exc:
         logger.error(f"Submit request failed: {exc}", extra={"request_id": request_id})
         raise HTTPException(status_code=502, detail=f"Submit request failed: {exc}") from exc
-
-
