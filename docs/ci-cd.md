@@ -24,7 +24,6 @@ If you have forked this repository and want to use these actions to publish imag
     | -------------------------- | -------------------------------------------------------------------------- | ------------------- |
     | `DOCKERHUB_USERNAME`       | Your Docker Hub username.                                                  | `your-dockerhub-id` |
     | `DOCKERHUB_TOKEN`          | Your Docker Hub access token with read/write permissions.                  | `dckr_pat_...`      |
-    | `HUGGINGFACE_ACCESS_TOKEN` | Your READ access token from Hugging Face for FLUX and other model downloads. | `hf_...`            |
 
 2.  **Variables** (`Settings > Secrets and variables > Actions > New repository variable`):
 
@@ -34,3 +33,5 @@ If you have forked this repository and want to use these actions to publish imag
     | `DOCKERHUB_IMG`  | The base name for the image to be pushed to Docker Hub.                      | `my-custom-flux-worker` |
 
 With these secrets and variables configured, the actions will push the built images (for example `your-dockerhub-id/my-custom-flux-worker:dev-flux-dev-cu128` or `your-dockerhub-id/my-custom-flux-worker:1.0.0-flux-dev-cu128`) to your Docker Hub account when triggered.
+
+The published images do not bake FLUX into the image. Runtime preload happens on the worker using `FLUX_DEV_PRELOAD=true` and a Hugging Face token provided as an endpoint environment variable.

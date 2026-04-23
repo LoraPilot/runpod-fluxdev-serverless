@@ -170,7 +170,6 @@ bootstrap_flux() {
     local model_root="${FLUX_MODEL_ROOT:-/workspace/models}"
     local image_model_root="${FLUX_IMAGE_MODEL_ROOT:-/opt/models/FLUX.1-dev}"
     local token
-    local download_errors=0
     token="$(flux_hf_token)"
 
     if flux_has_diffusers_model "${model_root}"; then
@@ -188,33 +187,61 @@ bootstrap_flux() {
         return
     fi
 
+    if [ -z "${token}" ]; then
+        flux_log "FLUX_DEV_PRELOAD=true but no Hugging Face token was provided"
+        flux_log "Set HUGGINGFACE_ACCESS_TOKEN, HUGGINGFACE_TOKEN, or HF_TOKEN so the worker can preload FLUX into ${model_root}"
+        return 1
+    fi
+
     flux_log "Starting Flux model preload..."
     flux_log "Model root: ${model_root}"
     mkdir -p "${model_root}"
 
-    # Download FLUX.1-dev in diffusers format
-    flux_log "Downloading FLUX.1-dev in diffusers format..."
-    python -c "
-from diffusers import FluxPipeline
+    export FLUX_PRELOAD_MODEL_ROOT="${model_root}"
+    export FLUX_PRELOAD_TOKEN="${token}"
+
+    flux_log "Downloading FLUX.1-dev diffusers snapshot into ${model_root}"
+    if ! python - <<'PY'
 import os
+import sys
 
-token = os.environ.get('HF_TOKEN')
-if token:
-    os.environ['HF_TOKEN'] = token
+from huggingface_hub import snapshot_download
 
-pipeline = FluxPipeline.from_pretrained(
-    'black-forest-labs/FLUX.1-dev',
-    torch_dtype='float32',
-    token=token
+model_root = os.environ["FLUX_PRELOAD_MODEL_ROOT"]
+token = os.environ["FLUX_PRELOAD_TOKEN"]
+
+snapshot_download(
+    "black-forest-labs/FLUX.1-dev",
+    token=token,
+    local_dir=model_root,
+    allow_patterns=[
+        "model_index.json",
+        "scheduler/*",
+        "text_encoder/*",
+        "text_encoder_2/*",
+        "tokenizer/*",
+        "tokenizer_2/*",
+        "transformer/*",
+        "vae/*",
+    ],
 )
-pipeline.save_pretrained('${model_root}')
-print('FLUX.1-dev model download completed successfully.')
-"
-
-    if [ $? -ne 0 ]; then
+print("FLUX.1-dev model download completed successfully.")
+PY
+    then
+        unset FLUX_PRELOAD_MODEL_ROOT
+        unset FLUX_PRELOAD_TOKEN
         flux_log "Failed to download FLUX.1-dev model"
         return 1
     fi
 
+    unset FLUX_PRELOAD_MODEL_ROOT
+    unset FLUX_PRELOAD_TOKEN
+
+    if ! flux_has_diffusers_model "${model_root}"; then
+        flux_log "FLUX preload finished but ${model_root} is still missing diffusers metadata"
+        return 1
+    fi
+
+    du -sh "${model_root}" || true
     flux_log "Flux model preload completed successfully."
 }

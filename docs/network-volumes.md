@@ -8,8 +8,9 @@ This document explains how to use RunPod **Network Volumes** with this worker, h
 
 > **Important**
 >
-> The FLUX.1-dev model is already included in the Docker image. Network volumes are optional and primarily used for:
+> The default worker image downloads FLUX.1-dev into `/workspace/models` at runtime. Network volumes are therefore the sane default for:
 > - Persisting the Python venv and caches across worker restarts
+> - Persisting the downloaded FLUX base model across worker restarts
 > - Storing additional models (LoRAs, custom checkpoints, etc.)
 
 ## Directory Mapping
@@ -56,113 +57,38 @@ If you use the S3-compatible API, the same paths map as:
 
 ## Expected Directory Structure
 
-Models must be placed in the following structure on your network volume:
+The worker expects a **diffusers snapshot** rooted at `/workspace/models`:
 
 ```text
 /workspace/
 └── models/
-    ├── checkpoints/      # Stable Diffusion checkpoints (.safetensors, .ckpt)
-    ├── loras/            # LoRA files (.safetensors, .pt)
-    ├── vae/              # VAE models (.safetensors, .pt)
-    ├── clip/             # CLIP models (.safetensors, .pt)
-    ├── clip_vision/      # CLIP Vision models
-    ├── controlnet/       # ControlNet models (.safetensors, .pt)
-    ├── embeddings/       # Textual inversion embeddings (.safetensors, .pt)
-    ├── upscale_models/   # Upscaling models (.safetensors, .pt)
-    ├── unet/             # UNet models
-    └── configs/          # Model configs (.yaml, .json)
+    ├── model_index.json
+    ├── scheduler/
+    ├── text_encoder/
+    ├── text_encoder_2/
+    ├── tokenizer/
+    ├── tokenizer_2/
+    ├── transformer/
+    └── vae/
 ```
 
-> **Note**
->
-> Only create the subdirectories you actually need; empty or missing folders are fine. On serverless, `/workspace/models/...` and `/runpod-volume/models/...` are the same underlying storage.
+On serverless, `/workspace/models/...` and `/runpod-volume/models/...` are the same underlying storage.
 
-## Supported File Extensions
+The runtime preload path in this repo downloads exactly that structure on first boot when `FLUX_DEV_PRELOAD=true` and a Hugging Face token is present.
 
-| Model Type | Supported Extensions |
-| ---------- | ------------------- |
-| Diffusion models | `.safetensors`, `.bin` |
-| Text encoders | `.safetensors`, `.bin` |
-| VAE | `.safetensors`, `.bin` |
+## Detection Rules
 
-Files with other extensions (for example `.txt`, `.zip`) are **ignored** by the model discovery.
+The worker considers a local model path valid when it finds diffusers metadata at the root, specifically `model_index.json` or `config.json`.
 
 ## Common Issues
 
 - **Wrong root directory**
-  - Models placed directly under `/runpod-volume/checkpoints/...` instead of `/runpod-volume/models/checkpoints/...`.
-- **Incorrect extensions**
-  - Files named without one of the supported extensions are skipped.
-- **Empty directories**
-  - No actual model files present in `models/checkpoints` (or other folders).
+  - Diffusers files placed directly under `/runpod-volume/...` instead of `/runpod-volume/models/...`.
+- **Incomplete diffusers snapshot**
+  - `model_index.json` is missing, or one of the required component folders is absent.
+- **Missing Hugging Face token**
+  - `FLUX_DEV_PRELOAD=true` is set, but no `HUGGINGFACE_ACCESS_TOKEN`, `HUGGINGFACE_TOKEN`, or `HF_TOKEN` is available.
 - **Volume not attached**
   - Endpoint created without selecting a network volume under **Advanced → Select Network Volume**.
 
 If any of the above is true, the model discovery will fail.
-
-## Debugging with `NETWORK_VOLUME_DEBUG`
-
-The worker exposes an opt‑in debug mode controlled via the `NETWORK_VOLUME_DEBUG` environment variable.
-
-### When to Use
-
-Enable this when:
-
-- Models on your network volume are not being detected
-- You suspect the directory structure or file extensions are wrong
-- You want to quickly verify what the worker can actually see on `/runpod-volume`
-
-### How to Enable
-
-1. Go to your serverless **Endpoint → Manage → Edit**.
-2. Under **Environment Variables**, add:
-
-   - `NETWORK_VOLUME_DEBUG=true`
-
-3. Save and wait for workers to restart (or scale to zero and back up).
-4. Send any request to your endpoint (even a minimal one) to trigger the diagnostics.
-
-### Reading the Diagnostics
-
-When enabled, each request prints a detailed report to the worker logs, for example:
-
-```text
-======================================================================
-NETWORK VOLUME DIAGNOSTICS (NETWORK_VOLUME_DEBUG=true)
-======================================================================
-
-[1] Checking extra_model_paths.yaml configuration...
-
-[2] Checking network volume mount at /runpod-volume...
-    ✓ MOUNTED: /runpod-volume
-
-[3] Checking directory structure...
-    ✓ FOUND: /runpod-volume/models
-
-[4] Scanning model directories...
-
-    checkpoints/:
-      - my-model.safetensors (6.5 GB)
-
-    loras/:
-      - style-lora.safetensors (144.2 MB)
-
-[5] Summary
-    ✓ Models found on network volume!
-======================================================================
-```
-
-If there is a problem, the diagnostics will instead highlight it, for example:
-
-- Missing `models/` directory
-- No valid model files in any subdirectory
-- Files present but ignored due to wrong extensions
-
-### Disabling Debug Mode
-
-Once you have resolved your issue, disable diagnostics to keep logs clean:
-
-- Remove the `NETWORK_VOLUME_DEBUG` environment variable, **or**
-- Set `NETWORK_VOLUME_DEBUG=false`
-
-This returns the worker to normal behavior without extra log noise.

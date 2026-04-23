@@ -4,7 +4,7 @@ This guide covers methods for customizing your FLUX.1-dev worker deployment.
 
 > [!TIP]
 >
-> **The FLUX.1-dev model is already included in the Docker image.**
+> **The default worker image is lean. FLUX.1-dev is preloaded into `/workspace/models` at runtime.**
 >
 > You only need customization if you want to add additional models, LoRAs, or modify the environment.
 
@@ -55,14 +55,14 @@ Using a Network Volume is primarily useful if you want to manage **models** sepa
     - Follow the [RunPod Network Volumes guide](https://docs.runpod.io/pods/storage/create-network-volumes) to create a volume in the same region as your endpoint.
 2.  **Populate the Volume with Models**:
     - Use one of the methods described in the RunPod guide (e.g., temporary Pod + `wget`, direct upload, or the S3-compatible API) to place your model files into the correct directory structure **within the volume**.
-    - For **serverless endpoints**, the network volume is mounted at `/runpod-volume`, and models should be placed under `/runpod-volume/models/...`. See [Network Volumes & Model Paths](network-volumes.md) for the exact structure and debugging tips.
+    - For **serverless endpoints**, the network volume is mounted at `/runpod-volume`, and the base FLUX diffusers snapshot should live under `/runpod-volume/models/...`. See [Network Volumes & Model Paths](network-volumes.md) for the exact structure.
       ```bash
       # Example structure inside the Network Volume (serverless worker view):
-      # /runpod-volume/models/checkpoints/your_model.safetensors
-      # /runpod-volume/models/loras/your_lora.pt
-      # /runpod-volume/models/vae/your_vae.safetensors
+      # /runpod-volume/models/model_index.json
+      # /runpod-volume/models/transformer/diffusion_pytorch_model-00001-of-00003.safetensors
+      # /runpod-volume/models/text_encoder/model.safetensors
       ```
-    - **Important:** Ensure models are placed in the correct subdirectories (e.g., checkpoints in `models/checkpoints`, LoRAs in `models/loras`). If models are not detected, enable `NETWORK_VOLUME_DEBUG` as described in [Network Volumes & Model Paths](network-volumes.md).
+    - **Important:** Ensure the diffusers snapshot root stays at `models/`. If `model_index.json` is missing or buried deeper, the worker will ignore it.
 3.  **Configure Your Endpoint**:
     - Use the Network Volume in your endpoint configuration:
       - Either create a new endpoint or update an existing one (see [Deployment Guide](deployment.md)).
@@ -70,5 +70,5 @@ Using a Network Volume is primarily useful if you want to manage **models** sepa
 
 > [!NOTE]
 >
-> - When a Network Volume is correctly attached, the worker will automatically detect and load models from the standard directories (`/runpod-volume/models/...`). For directory mapping details and troubleshooting, see [Network Volumes & Model Paths](network-volumes.md).
+> - When a Network Volume is correctly attached, the worker will automatically detect and load a valid diffusers snapshot from `/runpod-volume/models/...`. For directory mapping details and troubleshooting, see [Network Volumes & Model Paths](network-volumes.md).
 > - This method is **not suitable for installing custom nodes**; use the Custom Dockerfile method for that.

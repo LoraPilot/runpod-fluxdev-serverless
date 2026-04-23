@@ -110,16 +110,19 @@ For enhanced local development and end-to-end testing, you can start a local env
 
 **Steps:**
 
-1.  **Set Environment Variable (Optional but Recommended):**
-    - While the `docker-compose.yml` currently sets `SERVE_API_LOCALLY=true` by default, the cleaner setting is `RUN_MODE=local-api`.
-    - If you modify the compose file or use an `.env` file, prefer setting `RUN_MODE=local-api` explicitly.
+1.  **Set Environment Variables:**
+    - Export a Hugging Face token before starting the stack so runtime preload can download FLUX into the mounted `/workspace/models` path:
+      ```bash
+      export HUGGINGFACE_ACCESS_TOKEN=hf_xxx
+      ```
+    - The `docker-compose.yml` already sets `RUN_MODE=local-api` and `FLUX_DEV_PRELOAD=true`.
 2.  **Start the services**:
     ```bash
     # From the project root directory
     docker-compose up --build
     ```
     - The `--build` flag ensures the image is built locally using the current state of the code and `Dockerfile`.
-    - This will start the worker container, which in turn starts the local RunPod API shim and the bundled frontend.
+    - This will start the worker container, which in turn starts the local RunPod API shim, preloads FLUX into `./data/runpod-volume/models`, and starts the bundled frontend.
 
 ### Access the Local Worker API
 

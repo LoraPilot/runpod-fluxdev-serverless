@@ -13,7 +13,6 @@ ARG PYTORCH_PACKAGES="torch torchvision torchaudio"
 ARG EXTRA_PYTHON_PACKAGES=""
 ARG EXTRA_PYTHON_INDEX_URL=""
 ARG FLUX_DEV_PRELOAD=""
-ARG HUGGINGFACE_ACCESS_TOKEN=""
 
 # Prevents prompts from packages asking for user input during installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -23,7 +22,6 @@ ENV PIP_PREFER_BINARY=1
 ENV PYTHONUNBUFFERED=1
 # Speed up some cmake builds
 ENV CMAKE_BUILD_PARALLEL_LEVEL=8
-ENV FLUX_IMAGE_MODEL_PATH=/opt/models/FLUX.1-dev
 
 # Install Python, git and other necessary tools
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -75,20 +73,6 @@ RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
       else \
         python -m pip install ${EXTRA_PYTHON_PACKAGES}; \
       fi; \
-    fi
-
-# Download FLUX.1-dev model in diffusers format during build (optional)
-# If HUGGINGFACE_ACCESS_TOKEN is not provided, the model will be downloaded at runtime
-RUN --mount=type=cache,target=/root/.cache/huggingface,sharing=locked \
-    mkdir -p "${FLUX_IMAGE_MODEL_PATH}" && \
-    if [ -n "${HUGGINGFACE_ACCESS_TOKEN}" ]; then \
-      export HF_TOKEN="${HUGGINGFACE_ACCESS_TOKEN}" && \
-      export HF_HUB_ENABLE_HF_TRANSFER=1 && \
-      echo "Downloading FLUX.1-dev in diffusers format using huggingface-cli..." && \
-      huggingface-cli download black-forest-labs/FLUX.1-dev --local-dir "${FLUX_IMAGE_MODEL_PATH}" --local-dir-use-symlinks False && \
-      echo "FLUX.1-dev model download completed successfully."; \
-    else \
-      echo "HUGGINGFACE_ACCESS_TOKEN not provided - model will be downloaded at runtime"; \
     fi
 
 # Add application code and scripts

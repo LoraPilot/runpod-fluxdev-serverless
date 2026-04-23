@@ -11,6 +11,8 @@ services:
               capabilities: [gpu]
     environment:
       - RUN_MODE=local-api
+      - FLUX_DEV_PRELOAD=true
+      - HUGGINGFACE_ACCESS_TOKEN=${HUGGINGFACE_ACCESS_TOKEN:-}
     ports:
       - "8000:8000"
     volumes:

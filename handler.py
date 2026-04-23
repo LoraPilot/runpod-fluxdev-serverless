@@ -205,7 +205,26 @@ def get_flux_pipeline(logger: logging.LoggerAdapter) -> FluxPipeline:
             raise
 
 
-def decode_cached_response(raw_value: str) -> dict | None:
+def build_image_data_url(image_base64: str) -> str:
+    """Build a browser-ready data URL for a PNG image."""
+    return f"data:image/png;base64,{image_base64}"
+
+
+def with_image_view_fields(response: dict[str, Any], include_image_data_url: bool = False) -> dict[str, Any]:
+    """Attach optional browser-friendly image fields without changing the base response contract."""
+    if not include_image_data_url:
+        return response
+
+    image_base64 = response.get("image")
+    if not image_base64:
+        return response
+
+    enriched_response = dict(response)
+    enriched_response["image_data_url"] = build_image_data_url(image_base64)
+    return enriched_response
+
+
+def decode_cached_response(raw_value: str, include_image_data_url: bool = False) -> dict | None:
     try:
         cached_response = json.loads(raw_value)
     except (TypeError, json.JSONDecodeError):
@@ -216,7 +235,7 @@ def decode_cached_response(raw_value: str) -> dict | None:
 
     response = dict(cached_response)
     response["cached"] = True
-    return response
+    return with_image_view_fields(response, include_image_data_url)
 
 
 def build_cache_key(prompt: str, width: int, height: int, num_inference_steps: int, guidance_scale: float) -> str:
@@ -301,7 +320,18 @@ def handler(job: dict[str, Any]) -> dict[str, Any]:
     height = job_input.get("height", 1024)
     num_inference_steps = job_input.get("num_inference_steps", 50)
     guidance_scale = job_input.get("guidance_scale", 3.5)
-    seed = job_input.get("seed", random.randint(0, 2**32 - 1))
+    seed = job_input.get("seed")
+    include_image_data_url = job_input.get("include_image_data_url", False)
+
+    if seed is None:
+        seed = random.randint(0, 2**32 - 1)
+    elif isinstance(seed, bool) or not isinstance(seed, int):
+        logger_adapter.warning("Validation failed: seed must be an integer or null")
+        return {"status": "error", "error": "seed must be an integer or null"}
+
+    if not isinstance(include_image_data_url, bool):
+        logger_adapter.warning("Validation failed: include_image_data_url must be a boolean")
+        return {"status": "error", "error": "include_image_data_url must be a boolean"}
     
     # Validate parameters
     is_valid, error_msg = validate_generation_params({
@@ -321,7 +351,10 @@ def handler(job: dict[str, Any]) -> dict[str, Any]:
     if redis_client:
         try:
             with performance_monitor("cache_lookup", logger_adapter):
-                cached_response = decode_cached_response(redis_client.get(cache_key))
+                cached_response = decode_cached_response(
+                    redis_client.get(cache_key),
+                    include_image_data_url=include_image_data_url,
+                )
                 if cached_response:
                     logger_adapter.info(f"Cache hit for key: {cache_key[:16]}...")
                     return cached_response
@@ -374,7 +407,7 @@ def handler(job: dict[str, Any]) -> dict[str, Any]:
             except Exception as e:
                 logger_adapter.warning(f"Failed to cache response: {e}")
         
-        return response
+        return with_image_view_fields(response, include_image_data_url)
         
     except Exception as e:
         logger_adapter.error(f"Generation failed: {e}")

@@ -11,23 +11,22 @@ Less boot drama. More actual inference.
 
 The simplest way to get started is to pull a pre-built Docker image from Docker Hub and deploy it as a RunPod serverless endpoint.
 
-Pre-built images include both the FLUX.1-dev handler and the model in diffusers format.
+Pre-built images include the FLUX.1-dev handler and runtime dependencies. The model is preloaded into `/workspace/models` on first boot.
 
 1. Pull a pre-built Docker image from Docker Hub.
 2. Create a RunPod serverless template that uses that image.
-3. Attach a network volume so `/workspace` is persistent (optional but recommended).
+3. Attach a network volume so `/workspace` is persistent.
 4. Deploy the endpoint with `Active Workers = 0` unless you enjoy paying for idle GPUs.
 5. Send requests to the endpoint with a text prompt.
 
 For detailed deployment steps, see [Deployment Guide](docs/deployment.md).
 
-> **Note:** If you need to build the image yourself (instead of using pre-built images), you can optionally provide `HUGGINGFACE_ACCESS_TOKEN` as a build argument to bake the model into the image-owned path `/opt/models/FLUX.1-dev`. Without the token, the image builds without the base model and you can still opt into runtime preload later:
+> **Note:** This repo now ships lean images and preloads FLUX.1-dev into `/workspace/models` at runtime. You do not need a Hugging Face token at build time:
 > ```bash
-> # Build with model baked in (requires HuggingFace access token)
-> docker build --build-arg HUGGINGFACE_ACCESS_TOKEN=hf_xxx --platform linux/amd64 -t flux-dev-worker:latest .
->
-> # Build without model (set FLUX_DEV_PRELOAD=true at runtime if you want startup download)
+> # Build the worker image
 > docker build --platform linux/amd64 -t flux-dev-worker:latest .
+>
+> # At runtime, set FLUX_DEV_PRELOAD=true and provide HUGGINGFACE_ACCESS_TOKEN=hf_xxx
 > ```
 
 ## Available Docker Images
@@ -35,8 +34,8 @@ For detailed deployment steps, see [Deployment Guide](docs/deployment.md).
 | Target | Use Case |
 | --- | --- |
 | `base` | Default clean CUDA 12.8 / cu128 base image |
-| `flux-dev` | Default target for CUDA 12.8 deployments with FLUX.1-dev preloaded |
-| `flux-dev-cuda13` | Experimental CUDA 13 path with FLUX.1-dev preloaded |
+| `flux-dev` | Default target for CUDA 12.8 deployments with FLUX runtime preload enabled |
+| `flux-dev-cuda13` | Experimental CUDA 13 path with FLUX runtime preload enabled |
 | `base-cuda12-8-1` | Explicit CUDA 12.8 base image alias for custom builds |
 | `base-cuda13-0` | Clean CUDA 13 base image for custom experimental builds |
 
@@ -59,7 +58,8 @@ Hardware requirements: 12GB+ VRAM and 16GB+ free disk recommended. See [Deployme
     "height": 1024,
     "num_inference_steps": 50,
     "guidance_scale": 3.5,
-    "seed": 42
+    "seed": 42,
+    "include_image_data_url": true
   }
 }
 ```
@@ -70,6 +70,7 @@ Hardware requirements: 12GB+ VRAM and 16GB+ free disk recommended. See [Deployme
 {
   "status": "success",
   "image": "base64_encoded_png_data",
+  "image_data_url": "data:image/png;base64,base64_encoded_png_data",
   "metadata": {
     "generation_time_sec": 12.5,
     "seed": 42
@@ -78,6 +79,8 @@ Hardware requirements: 12GB+ VRAM and 16GB+ free disk recommended. See [Deployme
 }
 ```
 
+The `image_data_url` field is optional and is only returned when you send `include_image_data_url=true`. The existing `image` field remains the default contract.
+
 ## Essential Configuration
 
 ### Recommended First Boot Env
@@ -85,13 +88,13 @@ Hardware requirements: 12GB+ VRAM and 16GB+ free disk recommended. See [Deployme
 For a sane first boot on RunPod serverless, use:
 
 ```env
+FLUX_DEV_PRELOAD=true
+HUGGINGFACE_ACCESS_TOKEN=hf_xxx
 PERSIST_WORKSPACE=true
 REDIS_URL=redis://localhost:6379
 ```
 
-The FLUX.1-dev model is included in the Docker image, so no preload is needed. Workspace persistence caches Python venv and other assets across worker restarts.
-
-If you intentionally built an image without the model baked in, set `FLUX_DEV_PRELOAD=true` and provide `HUGGINGFACE_ACCESS_TOKEN=hf_xxx` at runtime so the worker can download the model into `/workspace/models`.
+The worker downloads the FLUX.1-dev diffusers snapshot into `/workspace/models` on first boot. Workspace persistence keeps the Python venv, caches, and downloaded model across worker restarts instead of making every cold start rediscover fire.
 
 For the full list of environment variables, see [Configuration Guide](docs/configuration.md).
 
@@ -136,6 +139,8 @@ The `image` field contains a base64-encoded PNG image. Decode it to view or save
 ```bash
 echo "iVBORw0KGgoAAAANSUhEUgAA..." | base64 -d > output.png
 ```
+
+If you request `include_image_data_url=true`, you can also paste the returned `image_data_url` directly into a browser tab or use it as the `src` of an `<img>` tag.
 
 ### RunPod Serverless Testing
 

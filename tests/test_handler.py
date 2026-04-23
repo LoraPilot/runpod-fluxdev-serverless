@@ -127,6 +127,18 @@ class TestFluxHandler(unittest.TestCase):
         self.assertTrue(decoded["cached"])
         self.assertEqual(decoded["status"], "success")
 
+    def test_decode_cached_response_with_image_data_url(self):
+        """Test decoding a valid cached response with an opt-in image data URL."""
+        response = {
+            "status": "success",
+            "image": "base64string",
+            "metadata": {},
+        }
+        raw_value = json.dumps(response)
+        decoded = handler.decode_cached_response(raw_value, include_image_data_url=True)
+        self.assertIsNotNone(decoded)
+        self.assertEqual(decoded["image_data_url"], "data:image/png;base64,base64string")
+
     def test_decode_cached_response_invalid_json(self):
         """Test decoding invalid JSON."""
         decoded = handler.decode_cached_response("invalid json")
@@ -199,6 +211,56 @@ class TestFluxHandler(unittest.TestCase):
             importlib.reload(handler)
             # Should handle gracefully and set redis_client to None
             self.assertIsNone(handler.redis_client)
+
+    @patch("handler.random.randint", return_value=1234)
+    @patch("handler.torch.Generator")
+    @patch("handler.image_to_base64", return_value="base64string")
+    @patch("handler.get_flux_pipeline")
+    def test_handler_allows_null_seed_and_opt_in_image_data_url(
+        self,
+        mock_get_flux_pipeline,
+        mock_image_to_base64,
+        mock_generator_cls,
+        mock_randint,
+    ):
+        """Test that null seed falls back to random and image_data_url is opt-in."""
+        mock_pipeline = MagicMock()
+        mock_pipeline.return_value.images = [MagicMock()]
+        mock_get_flux_pipeline.return_value = mock_pipeline
+
+        mock_generator = MagicMock()
+        mock_generator.manual_seed.return_value = "seeded-generator"
+        mock_generator_cls.return_value = mock_generator
+
+        with patch.object(handler, "redis_client", None):
+            response = handler.handler({
+                "id": "job-123",
+                "input": {
+                    "prompt": "test prompt",
+                    "seed": None,
+                    "include_image_data_url": True,
+                },
+            })
+
+        self.assertEqual(response["status"], "success")
+        self.assertEqual(response["image"], "base64string")
+        self.assertEqual(response["image_data_url"], "data:image/png;base64,base64string")
+        self.assertEqual(response["metadata"]["seed"], 1234)
+        mock_randint.assert_called_once()
+        mock_generator.manual_seed.assert_called_once_with(1234)
+
+    def test_handler_rejects_non_boolean_include_image_data_url(self):
+        """Test validation for include_image_data_url type."""
+        response = handler.handler({
+            "id": "job-123",
+            "input": {
+                "prompt": "test prompt",
+                "include_image_data_url": "yes",
+            },
+        })
+
+        self.assertEqual(response["status"], "error")
+        self.assertIn("include_image_data_url", response["error"])
 
 
 if __name__ == "__main__":

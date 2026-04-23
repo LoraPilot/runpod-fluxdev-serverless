@@ -12,8 +12,9 @@ This document outlines the environment variables available for configuring the w
 | `PERSIST_WORKSPACE`  | When `true`, persist the Python venv, caches, and downloaded assets under `/workspace` (which aliases `/runpod-volume` on serverless).                                                                            | `true`  |
 | `WORKSPACE_ROOT`     | Override the detected persistent workspace root. Useful only if your mount layout differs from RunPod defaults.                                                                                                              | auto    |
 | `WORKSPACE_STATE_ROOT` | Override the state directory inside the persistent workspace.                                                                                                                         | `/workspace/worker-venv` |
-| `HUGGINGFACE_ACCESS_TOKEN` | Optional token used when the base model is not baked into the image and the worker must download it at startup. `HF_TOKEN` and `HUGGINGFACE_TOKEN` are also accepted aliases by the preload script. | – |
-| `FLUX_MODEL_PATH` | Optional override for the local diffusers model directory. If unset, the worker prefers a valid `/workspace/models` copy and otherwise falls back to the baked image copy under `/opt/models/FLUX.1-dev`. | auto |
+| `FLUX_DEV_PRELOAD` | When `true`, preload the FLUX.1-dev diffusers snapshot into `/workspace/models` during worker startup. The `flux-dev` image targets enable this by default. | `false` |
+| `HUGGINGFACE_ACCESS_TOKEN` | Hugging Face READ token used by runtime preload. `HF_TOKEN` and `HUGGINGFACE_TOKEN` are also accepted aliases by the preload script. | – |
+| `FLUX_MODEL_PATH` | Optional override for the local diffusers model directory. If unset, the worker prefers a valid `/workspace/models` copy and otherwise falls back to the legacy image path under `/opt/models/FLUX.1-dev` if one exists. | auto |
 | `REDIS_URL` | Redis connection used for successful response caching. If Redis is unavailable, the worker still runs and simply skips cache reads and writes. | `redis://localhost:6379` |
 | `CACHE_TTL_SECONDS` | How long successful cached responses stay in Redis. | `604800` |
 
@@ -28,12 +29,14 @@ That prevents concurrent first-boot workers from trampling the same shared venv.
 For the least annoying first worker boot on RunPod serverless, set:
 
 ```env
+FLUX_DEV_PRELOAD=true
+HUGGINGFACE_ACCESS_TOKEN=hf_xxx
 PERSIST_WORKSPACE=true
 RUN_MODE=worker
 REDIS_URL=redis://localhost:6379
 ```
 
-The FLUX.1-dev model is already included in the Docker image in diffusers format. No runtime preload is needed. Workspace persistence caches Python venv and other assets across worker restarts.
+The worker downloads the FLUX.1-dev diffusers snapshot into `/workspace/models` on first boot. Workspace persistence keeps the Python venv, caches, and downloaded model across worker restarts.
 
 ## Runtime Paths
 
@@ -46,12 +49,6 @@ With workspace persistence enabled, the worker uses these paths:
 | Download and compiler caches | `/workspace/worker-venv/cache` |
 | Shared bootstrap lock | `/workspace/worker-venv/.bootstrap.lock` |
 | Shared model root for runtime preload or custom overrides | `/workspace/models` |
-| Image-baked base FLUX model | `/opt/models/FLUX.1-dev` |
+| Legacy image-baked FLUX path (used only if present) | `/opt/models/FLUX.1-dev` |
 
 On serverless, `/workspace` is the worker's internal alias for `/runpod-volume`.
-
-## Logging Configuration
-
-| Environment Variable   | Description                                                                                                                                                      | Default |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| `NETWORK_VOLUME_DEBUG` | Enable detailed network volume diagnostics in worker logs. Useful for debugging model path issues. See [Network Volumes & Model Paths](network-volumes.md).      | `false` |

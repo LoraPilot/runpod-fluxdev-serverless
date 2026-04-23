@@ -15,8 +15,8 @@ This is the simplest method if the official images meet your needs.
   - Container Image: Use one of the Flux-oriented tags from the main [README.md](../README.md#available-docker-images), for example `<repo>:<version>-flux-dev-cu128`. If you are building your own clean base, plain `base` now defaults to CUDA 12.8.1 / cu128.
   - Container Registry Credentials: Leave as default (images are public).
   - Container Disk: Adjust based on the chosen image tag, see [GPU Recommendations](#gpu-recommendations).
-  - (optional) Environment Variables: Configure `REDIS_URL` or other settings (see [Configuration Guide](configuration.md)). Only use `FLUX_DEV_PRELOAD` and `HUGGINGFACE_ACCESS_TOKEN` if you intentionally built an image without the baked model.
-    - Generated images are returned inline as base64 in the API response. If you want persistence across jobs, use a [Network Volume](customization.md#method-2-network-volume-alternative-for-models) for model and cache state. If models on your network volume are not being detected, see [Network Volumes & Model Paths](network-volumes.md) for troubleshooting steps.
+  - Environment Variables: Configure `FLUX_DEV_PRELOAD=true`, `HUGGINGFACE_ACCESS_TOKEN=hf_xxx`, `REDIS_URL`, and any other settings you need (see [Configuration Guide](configuration.md)).
+    - Generated images are returned inline as base64 in the API response. Use a [Network Volume](customization.md#method-2-network-volume-alternative-for-models) so `/workspace/models` survives worker churn. If models on your network volume are not being detected, see [Network Volumes & Model Paths](network-volumes.md) for troubleshooting steps.
 - Click on `Save Template`
 
 ### Create your endpoint
@@ -25,14 +25,14 @@ This is the simplest method if the official images meet your needs.
 - In the dialog, configure:
 
   - Endpoint Name: `flux-dev` (or your preferred name)
-  - Worker configuration: Select a GPU that can run the model included in your chosen image (see [GPU recommendations](#gpu-recommendations)).
+  - Worker configuration: Select a GPU that can run FLUX.1-dev once it is preloaded into `/workspace/models` (see [GPU recommendations](#gpu-recommendations)).
   - Active Workers: `0` (Scale as needed based on expected load).
   - Max Workers: `3` (Set a limit based on your budget and scaling needs).
   - GPUs/Worker: `1`
   - Idle Timeout: `5` (Default is usually fine, adjust if needed).
   - Flash Boot: `enabled` (Recommended for faster worker startup).
   - Select Template: `flux-dev-worker` (or the name you gave your template).
-  - (optional) Advanced: Attach a Network Volume under `Select Network Volume`. For this repo that is not really optional unless you like paying cold-start tax on every worker boot. See the [Customization Guide](customization.md#method-2-network-volume-alternative-for-models) and [Network Volumes & Model Paths](network-volumes.md).
+  - Advanced: Attach a Network Volume under `Select Network Volume`. For this repo that is not really optional unless you like paying cold-start tax on every worker boot. See the [Customization Guide](customization.md#method-2-network-volume-alternative-for-models) and [Network Volumes & Model Paths](network-volumes.md).
   - For serverless endpoints, leave `RUN_MODE` unset or set it explicitly to `worker`.
 
 ### Recommended first-boot env
@@ -40,12 +40,14 @@ This is the simplest method if the official images meet your needs.
 Use this for a sane first worker boot:
 
 ```env
+FLUX_DEV_PRELOAD=true
+HUGGINGFACE_ACCESS_TOKEN=hf_xxx
 PERSIST_WORKSPACE=true
 RUN_MODE=worker
 REDIS_URL=redis://localhost:6379
 ```
 
-The FLUX.1-dev model is already included in the Docker image in diffusers format. No runtime preload is needed. Workspace persistence caches Python venv and other assets across worker restarts.
+The worker downloads the FLUX.1-dev diffusers snapshot into `/workspace/models` on first boot. Workspace persistence keeps the Python venv, caches, and downloaded model across worker restarts.
 
 ## Hardware Baseline
 
@@ -80,7 +82,7 @@ The FLUX.1-dev model is already included in the Docker image in diffusers format
 | CUDA 12.8 clean base, explicit alias | `base-cuda12.8.1`         | N/A                   | 20 GB                      |
 | CUDA 13 clean base               | `base-cuda13.0`               | N/A                   | 20 GB                      |
 
-_Note: Container sizes are approximate and assume a network volume for persistent state. Without a network volume, you will need more local disk and much more patience._
+_Note: Container sizes are approximate and assume a network volume for persistent state. Without a network volume, every cold start gets to rediscover the same gated model like it has memory loss._
 
 ## Deploying Custom Setups
 
