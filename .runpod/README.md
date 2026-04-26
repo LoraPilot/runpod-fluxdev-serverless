@@ -11,18 +11,17 @@ Use the hub metadata in `.runpod/hub.json` when publishing this template to RunP
 ## What is included?
 
 - FLUX.1-dev text-to-image generation using FluxPipeline from diffusers
-- Runtime FLUX.1-dev preload into `/workspace/models`
+- FLUX.1-dev model baked into the Docker image in diffusers format
 - Redis caching for prompt deduplication
 - CUDA 12.8 as the default track, with an experimental CUDA 13 path for newer Blackwell-oriented hosts
 - Persistent `/workspace` for Python venv and cache persistence
 
 ## Recommended deployment shape
 
-- Attach a network volume for persistent Python venv and cache persistence.
-- Set `FLUX_DEV_PRELOAD=true` and provide a Hugging Face token so the worker can download FLUX into `/workspace/models` on first boot.
+- Attach a network volume. Without it, cold starts will repeatedly redownload large model assets.
 - Keep `PERSIST_WORKSPACE=true`.
 - Use at least 12 GB VRAM for practical FLUX.1-dev usage.
-- Plan for roughly 20 GB or more of disk for workspace persistence.
+- Plan for roughly 20 GB or more of disk for model assets.
 
 ## Important environment variables
 
@@ -48,6 +47,6 @@ Example payload:
 
 The full API payload format and deployment notes live in the main project docs:
 
-- [Repository README](https://github.com/LoraPilot/runpod-fluxdev-serverless/blob/main/README.md)
-- [Deployment Guide](https://github.com/LoraPilot/runpod-fluxdev-serverless/blob/main/docs/deployment.md)
-- [Network Volume Notes](https://github.com/LoraPilot/runpod-fluxdev-serverless/blob/main/docs/network-volumes.md)
+- [Repository README](https://github.com/vavo/flux-dev-serverless/blob/main/README.md)
+- [Deployment Guide](https://github.com/vavo/flux-dev-serverless/blob/main/docs/deployment.md)
+- [Network Volume Notes](https://github.com/vavo/flux-dev-serverless/blob/main/docs/network-volumes.md)

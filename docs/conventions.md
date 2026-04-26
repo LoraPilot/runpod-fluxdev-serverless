@@ -27,8 +27,8 @@ This document outlines the key operational and structural conventions for the pr
 
 ## 1. Configuration
 
-- **Environment Variables:** All external configurations (for example Redis caching, model path overrides, and RunPod behavior modifications like `REFRESH_WORKER`) **must** be managed via environment variables.
-- Refer to the main `README.md` and [Configuration Guide](configuration.md) for the current environment variable surface.
+- **Environment Variables:** All external configurations (e.g., AWS S3 credentials, RunPod behavior modifications like `REFRESH_WORKER`) **must** be managed via environment variables.
+- Refer to the main `README.md` sections "Config" and "Upload image to AWS S3" for details on available variables.
 
 ## 2. Docker Usage
 
@@ -47,18 +47,10 @@ This document outlines the key operational and structural conventions for the pr
 
 ## 3. API Interaction
 
-- **Primary Input Structure:** API calls to the `/run` or `/runsync` endpoints should use the FLUX.1-dev contract documented in the `README.md`. The primary key is `input`, containing text-to-image generation parameters:
-  - `prompt` (required): Text description for image generation
-  - `width` (optional): Image width (default: 1024)
-  - `height` (optional): Image height (default: 1024)
-  - `num_inference_steps` (optional): Number of denoising steps (default: 50)
-  - `guidance_scale` (optional): Guidance scale for generation (default: 3.5)
-  - `seed` (optional): Random seed for reproducibility (default: random)
-- **Output Structure:** Successful responses return base64-encoded PNG images inline:
-  - `status`: "success"
-  - `image`: Base64-encoded PNG data
-  - `metadata`: Generation metadata including generation time and seed
-  - `cached`: Boolean indicating if result was from cache
+- **Primary Input Structure:** API calls to the `/run` or `/runsync` endpoints should use the workflow contract documented in the `README.md`. The primary key is `input`, containing `workflow` (mandatory object) and `images` (optional array).
+- **Image Encoding:** Input images provided in the `input.images` array must be base64 encoded strings (optionally including a `data:[<mediatype>];base64,` prefix).
+- **Output Structure:** Successful workflow responses can contain `output.images` and `output.videos`. Each entry includes `filename`, `type` (`"url"` or `"base64"`), `data`, and `media_type`.
+- **Legacy Compatibility:** The handler still accepts the older `input.prompt` + `input.image_url` request shape, but that is compatibility ballast. Do not build new integrations around it.
 
 ## 4. Error Handling
 
